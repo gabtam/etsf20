@@ -137,11 +137,13 @@ public class DatabaseService {
 	}
 	
 	private TimeReport mapTimeReport(ResultSet rs) throws SQLException {
+		Timestamp signedAt = rs.getTimestamp("signedAt");
+		
 		return new TimeReport(
 				rs.getInt("timeReportId"),
 				rs.getInt("projectUserId"),
 				rs.getInt("signedById"),
-				rs.getTimestamp("signedAt").toLocalDateTime(),
+				signedAt == null ? null : signedAt.toLocalDateTime(),
 				rs.getInt("year"),
 				rs.getInt("week"),
 				rs.getTimestamp("updatedAt").toLocalDateTime(),
