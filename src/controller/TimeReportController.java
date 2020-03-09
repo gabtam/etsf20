@@ -13,7 +13,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpSession;
 
 import baseblocksystem.servletBase;
+import database.ActivityReport;
 import database.DatabaseService;
+import database.TimeReport;
+import database.User;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,11 +39,16 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet("/TimeReportPage")
 public class TimeReportController extends servletBase {
 	
-	DatabaseService dbs;
+	DatabaseService dbService;
 
 	public TimeReportController( ) {
 		super();
-		DatabaseService dbs = new DatabaseService();
+		try {
+			DatabaseService dbService = new DatabaseService();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	
@@ -63,23 +71,29 @@ public class TimeReportController extends servletBase {
 			
 		
 			
-			System.out.println(activityType);
-			System.out.println(subType);
+		//	System.out.println(activityType);
+		//	System.out.println(subType);
 
-			System.out.println(timeSpent);
+		//	System.out.println(timeSpent);
 	        
 	        
 		
-			out.println(getTableAllTimereports());
+			try {
+				out.println(getTableAllTimereports());
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			
 	    }
 	   
-	   private String getTableAllTimereports() {
+	   private String getTableAllTimereports() throws SQLException {
 			String html ="<table width=\"400\" border=\"2\">\r\n";
 	   
-						User currentUser = getLoggedInUser(req); //ÄR DETTA RÄTT?
-						List<TimeReport> userTimeReports = dbs.getTimeReportsByUser(currentUser.id); //Get all timereports for logged in user
+						User currentUser = new User(1, "a", "a", false);//getLoggedInUser(req); //ÄR DETTA RÄTT?
+						System.out.println(dbService);
+						List<TimeReport> userTimeReports = dbService.getTimeReportsByUser(1); //Get all timereports for logged in user
 					
 					for(TimeReport tr : userTimeReports) {
 						
@@ -118,11 +132,11 @@ public class TimeReportController extends servletBase {
 					
 	}
 			
-	   private int getTotalTimeReportTime(TimeReport tr) {
+	   private int getTotalTimeReportTime(TimeReport tr) throws SQLException {
 		   
 		   int totalTime = 0;
 		   
-		   List<ActivityReport> activitiesInTimeReport = dbs.getActivityReports(tr.getTimeReportId());
+		   List<ActivityReport> activitiesInTimeReport = dbService.getActivityReports(tr.getTimeReportId());
 			
 			for(ActivityReport ar : activitiesInTimeReport) { //calculate total time from all activity reports inside this timeReport
 				totalTime += ar.getMinutes();
