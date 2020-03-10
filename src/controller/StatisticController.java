@@ -10,6 +10,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
+
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
@@ -52,10 +54,6 @@ public class StatisticController extends servletBase {
 	}
 	
 	
-	private Statistic getUserStats(int userID, int projectID, LocalDate from, LocalDate to) throws Exception {
-		return dbService.getActivityStatistics(userID, projectID, from, to); // FIXME: how do we get projectId? Some hardcoded values for now.
-	}
-	
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
@@ -71,33 +69,17 @@ public class StatisticController extends servletBase {
 		
 		out.println("<body>");
 		
-		if (username == null || from == null || to == null || activity == null || role == null) {
+		if (from == null || to == null) {
 			out.println(statisticsPageForm(null));
 		} else {
 			try {
 				LocalDate fromDate = new SimpleDateFormat("dd-MMM-yyy").parse(from).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 				LocalDate toDate = new SimpleDateFormat("dd-MMM-yyy").parse(to).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 				
-				int weeks = (int) ChronoUnit.WEEKS.between(fromDate, toDate);
-				List<Statistic> stats = new ArrayList<Statistic>();
+				int weeks = (int) ChronoUnit.WEEKS.between(fromDate, toDate);				
 				
-
-					while(weeks > 0) {
-						
-						if (weeks > 10) {
-						Statistic statistic = getUserStats(1, 1, fromDate, fromDate.plusWeeks(10));
-						stats.add(statistic);
-						weeks = weeks - 10;
-						fromDate = fromDate.plusWeeks(11);
-						} else {
-							Statistic statistic = getUserStats(1, 1, fromDate, toDate);
-							stats.add(statistic);
-							weeks = 0;
-						}
-						
-					}
+				out.println(statisticsPageForm(getStats(username, fromDate, toDate, activity, role, weeks)));
 				
-				out.println(statisticsPageForm(stats));
 			} catch (Exception e) {
 				out.println(statisticsPageForm(null));
 				e.printStackTrace();
@@ -105,11 +87,83 @@ public class StatisticController extends servletBase {
 		}
 		
     }
+    
+    private List<Statistic> getStats(String username, LocalDate fromDate, LocalDate toDate, String activity, String role, int weeks) throws Exception {
+    	List<Statistic> stats = new ArrayList<Statistic>();
+    	List<Role> roles = dbService.getAllRoles();
+    	
+		while(weeks > 0) {
+			Statistic statistic = null;
+			
+			if (weeks > 10) {
+			switch (statsToGet(username, activity, role)) {
+			case 1:
+				statistic = dbService.getActivityStatistics(1, 1, fromDate, fromDate.plusWeeks(10));
+				break;
+			case 2:
+				statistic = dbService.getActivityStatistics(1, fromDate, toDate);
+				break;
+			case 3:
+				statistic = dbService.getRoleStatistics(1, 2, fromDate, toDate);
+				break;
+			case -1:
+				return null;
+
+			}
+			stats.add(statistic);
+			weeks = weeks - 10;
+			fromDate = fromDate.plusWeeks(11);
+			} else {
+				switch (statsToGet(username, activity, role)) {
+				case 1:
+					statistic = dbService.getActivityStatistics(1, 1, fromDate, toDate);
+					System.out.println("w1: ");
+					break;
+				case 2:
+					statistic = dbService.getActivityStatistics(1, fromDate, toDate);
+					System.out.println("w2: ");
+					break;
+				case 3:
+					statistic = dbService.getRoleStatistics(1, getRoleIdFor(role, roles), fromDate, toDate);
+					System.out.println("got roleID: " + getRoleIdFor(role, roles));
+					break;
+				case -1:
+					return null;
+
+				}
+				stats.add(statistic);
+				weeks = 0;
+			}
+			
+		}
+		return stats;
+    }
+    
+    
+    private int getRoleIdFor(String name, List<Role> roles) {
+    	for (Role role : roles) {
+			if (role.getRole().equals(name))
+				return role.getRoleId();
+		}
+    	
+    	return 1;
+    }
+    
+    
+    private int statsToGet(String username, String activity, String role) {
+    	if (username != null && !username.isBlank())
+    		return 1;
+    	else if(activity != null && !activity.isBlank())
+    		return 2;
+    	else if (role != null && !role.isBlank())
+    		return 3;
+    	else
+    		return -1;
+    }
 
 		
 	private String statisticsPageForm(List<Statistic> statistics) {
 			
-		
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append("<body>");
@@ -124,7 +178,7 @@ public class StatisticController extends servletBase {
 				"                <div class=\"filter_row\">\r\n" + 
 				"                    <div>\r\n" + 
 				"                    <p class=\"descriptors\">Username</p>\r\n" + 
-				"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\" required><br>\r\n" + 
+				"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\"><br>\r\n" + 
 				"                    </div>\r\n" + 
 				"                    <div>\r\n" + 
 				"                        <div>\r\n" + 
@@ -139,7 +193,7 @@ public class StatisticController extends servletBase {
 				"            <div>\r\n" + 
 				"                <p class=\"descriptors\">Activity</p>\r\n" + 
 				"                <div id=\"activity_picker\">\r\n" + 
-				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\">");
+				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\" onchange=\"if (this.selectedIndex) disableBoxes(this);\">");
 		sb.append(getActivitySelectOptions());
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
@@ -147,7 +201,7 @@ public class StatisticController extends servletBase {
 				"            <div>\r\n" + 
 				"                <p class=\"descriptors\">Role</p>\r\n" + 
 				"                <div id=\"activity_picker\">\r\n" + 
-				"                    <select id=\"act_picker\" name=\"role\" form=\"filter_form\">");
+				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\" onchange=\"if (this.selectedIndex) disableBoxes(this);\">");
 		sb.append(getRoleSelectOptions());
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
@@ -174,6 +228,23 @@ public class StatisticController extends servletBase {
 		
 		
 		sb.append("</div>");
+		sb.append("    <script>\r\n" + 
+				"      function disableBoxes(event) {\r\n" + 
+				"        switch (event.name) {\r\n" + 
+				"          case \"activity\":\r\n" + 
+				"            document.getElementById(\"rol_picker\").value = \"\";\r\n" + 
+				"            break;\r\n" + 
+				"            case \"role\":\r\n" + 
+				"            document.getElementById(\"act_picker\").value = \"\";\r\n" + 
+				"            break;\r\n" + 
+				"        }\r\n" + 
+				"      }\r\n" + 
+				"\r\n" + 
+				"      document.addEventListener(\"DOMContentLoaded\", function() {\r\n" + 
+				"        document.getElementById(\"rol_picker\").value = \"\";\r\n" + 
+				"        document.getElementById(\"act_picker\").value = \"\";\r\n" + 
+				"      });\r\n" + 
+				"    </script>");
 		sb.append("</body>");
 		return sb.toString();
 	}
