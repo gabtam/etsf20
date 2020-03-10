@@ -12,6 +12,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpSession;
 
+
 import baseblocksystem.servletBase;
 import database.ActivityReport;
 import database.ActivitySubType;
@@ -30,8 +31,12 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * Description of the class.
  * 
+<<<<<<< HEAD
  * @author Ferit B�lezek ( Enter name if you've messed around with this file ;)
  *         )
+=======
+ * @author Ferit B�lezek ( Enter name if you've messed around with this file ;) )
+>>>>>>> refs/remotes/origin/master
  * @version 1.0
  * 
  */
@@ -253,3 +258,4 @@ public class TimeReportController extends servletBase {
 	}
 
 }
+
