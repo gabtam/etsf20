@@ -115,6 +115,7 @@ public class LogIn extends servletBase {
        			response.sendRedirect("functionality.html");
        		}
        		else {
+       		
        			out.println("<p>That was not a valid user name / password. </p>");
        			out.println(loginRequestForm());
        		}
