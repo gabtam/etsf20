@@ -28,8 +28,7 @@ public class UserController extends servletBase {
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		
-		//test comment
+		//test comment test test hej hej
 		
 	}
-	//hejsan allihopa
 }
