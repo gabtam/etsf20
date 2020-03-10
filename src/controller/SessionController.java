@@ -100,8 +100,14 @@ public class SessionController extends servletBase {
 		}
 		return userOk;
 	}
-	private boolean logout(HttpServletRequest req) {
-		return true;
+	private boolean logout(HttpServletRequest req,HttpServletResponse resp) throws IOException {
+		if (isLoggedIn(req) == true) {
+			setIsLoggedIn(req,false);
+			resp.sendRedirect("SessionPage");
+			return true;
+			
+		}
+		return false;
 
 	}
 
