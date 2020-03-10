@@ -58,11 +58,25 @@ public class SessionController extends servletBase {
 
 				resp.sendRedirect("UserPage");
 			} else {
-				out.println("<p>That was not a valid user name / password. </p>");
+
+				out.println("<p><!DOCTYPE html>\n" + 
+						"<html>\n" + 
+						"<body>\n" + 
+						"\n" + 
+						"\n" + 
+						"\n" + 
+						"<script> {\n" + 
+						"  alert(\"That was not a valid user name / password.\");\n" + 
+						"}\n" + 
+						"</script>\n" + 
+						"\n" + 
+						"</body>\n" + 
+						"</html>\n" + 
+						" </p>");
+				
 				out.println(loginRequestForm());
 			}
 
-			out.println(loginRequestForm()); // TODO: Remove this later.
 
 		} else {
 			out.println(loginRequestForm());
@@ -86,8 +100,14 @@ public class SessionController extends servletBase {
 		}
 		return userOk;
 	}
-	private boolean logout(HttpServletRequest req) {
-		return true;
+	private boolean logout(HttpServletRequest req,HttpServletResponse resp) throws IOException {
+		if (isLoggedIn(req) == true) {
+			setIsLoggedIn(req,false);
+			resp.sendRedirect("SessionPage");
+			return true;
+			
+		}
+		return false;
 
 	}
 
