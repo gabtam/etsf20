@@ -1,6 +1,7 @@
 package controller;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,6 +27,15 @@ import database.*;
 public class UserController extends servletBase {
 	
 	DatabaseService dbService;
+	
+	public UserController() {
+		super();
+		try {
+			DatabaseService dbService = new DatabaseService();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -48,4 +58,6 @@ public class UserController extends servletBase {
     private String formElement(String par) {
     	return '"' + par + '"';
     }
+    
+    
 }
