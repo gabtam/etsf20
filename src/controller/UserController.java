@@ -30,15 +30,9 @@ import database.*;
 public class UserController extends servletBase {
 	private static final int PASSWORD_LENGTH = 6;
 	
-//	DatabaseService dbService;
 	
 	public UserController() {
 		super();
-//		try {
-//			DatabaseService dbService = new DatabaseService();
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
 	}
 
 	@Override
@@ -63,7 +57,7 @@ public class UserController extends servletBase {
 		if (!isLoggedIn(req))
 			resp.sendRedirect("LogIn");
 		else
-			if (true) {
+			if (isAdmin(req)) {
 				out.println("<h1>User Page " + "</h1>");
 				
 				// check if the administrator wants to add a new user in the form
@@ -90,11 +84,10 @@ public class UserController extends servletBase {
 				    List<User> users = dbService.getAllUsers();
 				    out.println("<p>Registered users:</p>");
 				    out.println("<table border=" + addQuotes("1") + ">");
-				    out.println("<tr><td>NAME</td><td>PASSWORD</td><td></td></tr>");
+				    out.println("<tr><td>NAME</td><td></td></tr>");
 				    for (User u : users) {
 				    	String name = u.getUsername();
-				    	String pw = u.getPassword();
-				    	String deleteURL = "Administration?deletename="+name;
+				    	String deleteURL = "UserPage?deletename="+name;
 				    	String deleteCode = "<a href=" + addQuotes(deleteURL) +
 				    			            " onclick="+addQuotes("return confirm('Are you sure you want to delete "+name+"?')") + 
 				    			            "> delete </a>";
@@ -104,7 +97,6 @@ public class UserController extends servletBase {
 				    		deleteCode = "";
 				    	out.println("<tr>");
 				    	out.println("<td>" + name + "</td>");
-				    	out.println("<td>" + pw + "</td>");
 				    	out.println("<td>" + deleteCode + "</td>");
 				    	out.println("</tr>");
 				    }
@@ -119,9 +111,9 @@ public class UserController extends servletBase {
 				out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
 				out.println("<p><a href =" + addQuotes("LogIn") + "> Log out </p>");
 				out.println("</body></html>");
-			} else  // name not admin
+			} else { // name not admin
 				resp.sendRedirect("functionality.html");
-		
+			}		
 	}
 	
 	public String addUserForm() {
