@@ -57,7 +57,7 @@ public class UserController extends servletBase {
 		if (!isLoggedIn(req))
 			resp.sendRedirect("LogIn");
 		else
-			if (isAdmin(req)) {
+			if (true) {
 				out.println("<h1>User Page " + "</h1>");
 				
 				// check if the administrator wants to add a new user in the form
@@ -111,9 +111,65 @@ public class UserController extends servletBase {
 				out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
 				out.println("<p><a href =" + addQuotes("LogIn") + "> Log out </p>");
 				out.println("</body></html>");
-			} else { // name not admin
-				resp.sendRedirect("functionality.html");
-			}		
+			} else
+				try {
+					if(isProjectLeader(req, getProjectId(req))){
+						String userId;
+						
+						if (newName != null) {
+							if (checkNewName(newName)) {
+								boolean addPossible = addUserToProject(userId, projectId, roleId);
+								if (!addPossible)
+									out.println("<p>Error: Suggested user name not possible to add</p>");
+							}	else
+								out.println("<p>Error: Suggesten name not allowed</p>");
+						}
+							
+						// check if the administrator wants to delete a user by clicking the URL in the list
+						String deleteName = req.getParameter("deletename");
+						if (deleteName != null) {
+							if (checkNewName(deleteName)) {
+								deleteUser(deleteName);
+							}	else
+								out.println("<p>Error: URL wrong</p>");
+						}
+						
+						try {			    
+						    List<User> users = dbService.getAllUsers();
+						    out.println("<p>Registered users:</p>");
+						    out.println("<table border=" + addQuotes("1") + ">");
+						    out.println("<tr><td>NAME</td><td></td></tr>");
+						    for (User u : users) {
+						    	String name = u.getUsername();
+						    	String deleteURL = "UserPage?deletename="+name;
+						    	String deleteCode = "<a href=" + addQuotes(deleteURL) +
+						    			            " onclick="+addQuotes("return confirm('Are you sure you want to delete "+name+"?')") + 
+						    			            "> delete </a>";
+						    	
+						    	
+						    	if (name.equals("admin")) 
+						    		deleteCode = "";
+						    	out.println("<tr>");
+						    	out.println("<td>" + name + "</td>");
+						    	out.println("<td>" + deleteCode + "</td>");
+						    	out.println("</tr>");
+						    }
+						    out.println("</table>");
+						} catch (SQLException ex) {
+						    System.out.println("SQLException: " + ex.getMessage());
+						    System.out.println("SQLState: " + ex.getSQLState());
+						    System.out.println("VendorError: " + ex.getErrorCode());
+						}
+						out.println(addUserForm());
+						
+						out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
+						out.println("<p><a href =" + addQuotes("LogIn") + "> Log out </p>");
+						out.println("</body></html>");
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}		
 	}
 	
 	public String addUserForm() {
@@ -138,6 +194,17 @@ public class UserController extends servletBase {
 		    resultOk = false;
 		    err.printStackTrace();
 		}
+    	return resultOk;
+    }
+    
+    private boolean addUserToProject(int userId, int projectId, int roleId) {
+    	boolean resultOk = true;
+    	try {
+    		dbService.addUserToProject(userId, projectId, roleId);
+    	} catch (Exception err) {
+    		resultOk = false;
+    		err.printStackTrace();
+    	}
     	return resultOk;
     }
     
