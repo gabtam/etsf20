@@ -26,7 +26,7 @@ import database.*;
  * @version 1.0
  * 
  */
-
+//typklar
 @WebServlet("/UserPage")
 public class UserController extends servletBase {
 	private static final int PASSWORD_LENGTH = 6;
