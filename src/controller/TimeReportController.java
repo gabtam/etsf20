@@ -5,13 +5,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-
+import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpSession;
-
 
 import baseblocksystem.servletBase;
 import database.ActivityReport;
@@ -31,12 +31,8 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * Description of the class.
  * 
-<<<<<<< HEAD
  * @author Ferit B�lezek ( Enter name if you've messed around with this file ;)
  *         )
-=======
- * @author Ferit B�lezek ( Enter name if you've messed around with this file ;) )
->>>>>>> refs/remotes/origin/master
  * @version 1.0
  * 
  */
@@ -73,9 +69,8 @@ public class TimeReportController extends servletBase {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getPageIntro());
 		try {
-			out.println(getTableAllTimereports());
+			out.println(getCurrentUserTimereports());
 		} catch (SQLException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -92,7 +87,7 @@ public class TimeReportController extends servletBase {
 
 		// System.out.println(timeSpent);
 		
-		if(!timeReportId.equals(0) && timeReportId != null) {
+		if(!timeReportId.equals(0)) {
 			int id = Integer.parseInt(timeReportId);
 			try {
 				out.println(getActivityReports(id));
@@ -104,8 +99,16 @@ public class TimeReportController extends servletBase {
 
 	}
 
-	private String getActivityReports(int timeReportId) throws SQLException {
+	private String getActivityReports(int timeReportId) throws Exception {
 
+		boolean isProjectLeader = false;
+		
+		if(this.isProjectLeader(null, timeReportId)) { //TODO: Vad ska vi ha för inparametrar
+			 isProjectLeader = true;
+		}
+		
+		boolean reportIsSigned = dbService.getTimeReportById(timeReportId).isFinished(); //TODO: Is finished eller is signed??
+		
 		String html = "<table width=\"600\" border=\"2\">\r\n" + "<tr>\r\n" + "<td> Datum </td>\r\n"
 				+ "<td> Aktivitetstyp </td>\r\n" + "<td> Subtyp </td>\r\n" + "<td> Minuter </td>\r\n"
 				+ "<td> Ta bort aktivitetsrapport </td>\r\n";
@@ -127,8 +130,28 @@ public class TimeReportController extends servletBase {
 					+ "<td>" + aReport.getReportDate().toString() + "</td>\r\n"
 					+ "<td>" + activityType + "</td>\r\n" 
 					+ "<td>" + activitySubType + "</td>\r\n" 
-					+ "<td>" + aReport.getMinutes() + "</td>\r\n"  //TODO: ska gå att ändra i tabellen om rapporten inte är signerad
-					+  "<td> <form method=\"get\"> <button name=\"activityReportId\" type=\"submit\" value=\"" + aReport.getActivityReportId() + "\"> Ta bort </button>  </form> \r\n";	//TODO: ska gå att tabort aktivitetsrapport om den inte är signerad
+					+ "<td>" + aReport.getMinutes() + "</td>\r\n";  //TODO: ska gå att ändra i tabellen om rapporten inte är signerad
+			
+			if(!reportIsSigned) { //If timereport isn't signed, show button for deleting timeReport, else dont show it.
+				html += "<td> <form method=\"get\"> <button name=\"activityReportId\" type=\"submit\" value=\"" + aReport.getActivityReportId() + "\"> Ta bort </button>  </form> \r\n";	//TODO: ska gå att tabort aktivitetsrapport om den inte är signerad
+				
+			}
+			
+			
+			if(isProjectLeader)	{
+				
+				if(reportIsSigned) { //TODO: Frågan i discord 
+					html += "<td> <form method=\"get\"> <button name=\"timeReportIdToUnsign\" type=\"submit\" value=\"" + aReport.getTimeReportId() 
+					+ "\"> Avsignera </button>  </form> \r\n" ;
+				}
+				
+				else {
+					html += "<td> <form method=\"get\"> <button name=\"timeReportIdToSign\" type=\"submit\" value=\"" + aReport.getTimeReportId() 
+					+ "\"> Signera </button>  </form> \r\n";
+					
+					
+				}
+			}
 		}		
 
 		html += "</tr>\r\n" + "</table>"; // END HTML
@@ -155,7 +178,7 @@ public class TimeReportController extends servletBase {
 		
 		for (ActivitySubType aSubType : subTypeList) { // Get activity type for current activity report
 				
-			if (aSubType.getActivitySubTypeId() == activityReport.getActivitySubTypeId()) { //TODO: Kanske fel, kolla i DB
+			if (aSubType.getActivitySubTypeId() == activityReport.getActivitySubTypeId()) { 
 				
 				return aSubType.getSubType();
 			}
@@ -164,7 +187,7 @@ public class TimeReportController extends servletBase {
 		return ""; //TODO: EXCEPTION?? Borde alltid hitta en subtype.
 	}
 
-	private String getTableAllTimereports() throws SQLException {
+	private String getUserTimereports(User user) throws SQLException {
 		String html = "<table width=\"400\" border=\"2\">\r\n" 
 				+ "<tr>\r\n" 
 				+ "<td> week </td>\r\n"
@@ -173,8 +196,7 @@ public class TimeReportController extends servletBase {
 				+ "<td> Välj tidrapport </td>\r\n"
 				+ "<td> Ta bort tidrapport </td>\r\n"; //TODO: Ska ej gå att ta bort om den är signerad
 
-		User currentUser = new User(1, "a", "a", false);// TODO: getLoggedInUser(req); 
-		List<TimeReport> userTimeReports = dbService.getTimeReportsByUser(1); //TODO:  Get all timereports for logged in user
+		List<TimeReport> userTimeReports = dbService.getTimeReportsByUser(user.getUserId()); //TODO:  Get all timereports for logged in user
 
 		for (TimeReport tr : userTimeReports) {
 
@@ -191,7 +213,7 @@ public class TimeReportController extends servletBase {
 					"<td>" + timeReportTotalTime + "</td>\r\n" + "<td>" + signed + "</td>\r\n"
 					+ "<td> <form method=\"get\"> <button name=\"timeReportId\" type=\"submit\" value=\"" + tr.getTimeReportId() 
 					+ "\"> Välj </button>  </form> \r\n" 
-					+ "<td> <input class=\"submitBtn\" type=\"submit\" value=\"Ta bortt\">\r\n"
+					+ "<td> <input class=\"submitBtn\" type=\"submit\" value=\"Ta bort\">\r\n" //TODO: Koppla till att ta bort tidrapport
 					+ "</td>\r\n" + "</tr>\r\n";
 
 		}
@@ -200,6 +222,67 @@ public class TimeReportController extends servletBase {
 
 		return html;
 
+	}
+	/**
+	 * Project leader retrives a table of all unsigned timereports.
+	 * @return HTML Page
+	 * @throws SQLException
+	 */
+	private String getUnsignedTimeReports() throws SQLException { 
+		
+		if(!this.isProjectLeader()) {
+			//TODO: Returnera någon exception
+		}
+		
+		String html;
+		
+		List <TimeReport> allTimeReports = dbService.getTimeReportsByProject(1); //TODO: Hur får man projektID
+		List <TimeReport> unsignedTimeReports = new ArrayList<TimeReport>();
+		
+		for(TimeReport tr : allTimeReports) {
+			
+			if(!tr.isSigned()) {
+				unsignedTimeReports.add(tr);
+			}
+		}
+		
+		
+		 html = "<table width=\"400\" border=\"2\">\r\n" 
+				+ "<tr>\r\n" 
+				+ "<td> week </td>\r\n"
+				+ "<td> timespent(minutes) </td>\r\n" 
+				+ "<td> Status </td>\r\n" 
+				+ "<td> Välj tidrapport </td>\r\n"
+				+ "<td> Ta bort tidrapport </td>\r\n"; //TODO: Ska ej gå att ta bort om den är signerad
+
+		
+
+		for (TimeReport tr : unsignedTimeReports) {
+
+			int timeReportTotalTime = getTotalTimeReportTime(tr);
+			String signed;
+
+			if (tr.isSigned()) { // get isSigned or not
+				signed = "Signerad";
+			} else {
+				signed = "Ej signerad";
+			}
+			
+			User trOwner = dbService.getUserById(tr.getProjectUserId());
+
+			html += "<tr>\r\n" + "<td>" + tr.getWeek() + "</td>\r\n" + // set values into HTML
+					"<td>" + trOwner.getUsername() + "</td>\r\n" +
+					"<td>" + timeReportTotalTime + "</td>\r\n"
+					+ "<td>" + signed + "</td>\r\n" //Should be "Ej signerad" for all reports
+					+ "<td> <form method=\"get\"> <button name=\"timeReportId\" type=\"submit\" value=\"" + tr.getTimeReportId() + "\"> Välj </button> </form> \r\n"
+					+ "<td> <input class=\"submitBtn\" type=\"submit\" value=\"Ta bort\">\r\n" //TODO: Koppla till att ta bort tidrapport
+					+ "</td>\r\n" + "</tr>\r\n";
+
+		}
+
+		html += "</tr>\r\n" + "</table>"; // END HTML
+
+		return html;		
 	}
 
 	private int getTotalTimeReportTime(TimeReport tr) throws SQLException {
@@ -258,4 +341,3 @@ public class TimeReportController extends servletBase {
 	}
 
 }
-
