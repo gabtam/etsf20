@@ -12,11 +12,20 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.catalina.LifecycleListener;
+
+import com.sun.java.swing.ui.StatusBar;
+
 import baseblocksystem.servletBase;
+import database.ActivityType;
 import database.DatabaseService;
+import database.Role;
 import database.Statistic;
+import sun.security.action.GetBooleanAction;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 
 /**
@@ -36,6 +45,7 @@ public class StatisticController extends servletBase {
 	
 	
 	private DatabaseService dbService; // Temporary, will be replaced later.
+	
 	
 	public StatisticController() {
 		super();
@@ -72,7 +82,7 @@ public class StatisticController extends servletBase {
 		
 		if (username == null || from == null || to == null || activity == null || role == null) {
 			out.println("<body>");
-			out.println(statisticsPageForm());
+			out.println(statisticsPageForm(null));
 		} else {
 			try {
 				LocalDate fromDate = new SimpleDateFormat("dd-MMM-yyy").parse(from).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -90,162 +100,117 @@ public class StatisticController extends servletBase {
 		
     }
 		
-	private String statisticsPageForm() {
-			return "    <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n" + 
-	        		"    "
-	        		+ "<div class=\"wrapper\">\r\n" + 
-	        		"        <div class=\"\">\r\n" + 
-	        		"            <form id=\"filter_form\" onsubmit=\"checkInput()\">\r\n" + 
-	        		"                <div id=\"stat_title\">\r\n" + 
-	        		"                    <p id=\"stat_title_text\">STATISTICS</p>\r\n" + 
-	        		"                </div>\r\n" + 
-	        		"\r\n" + 
-	        		"                <div class=\"filter_row\">\r\n" + 
-	        		"                    <div>\r\n" + 
-	        		"                    <p class=\"descriptors\">Username</p>\r\n" + 
-	        		"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\" required><br>\r\n" + 
-	        		"                    </div>\r\n" + 
-	        		"                    <div>\r\n" + 
-	        		"                        <div>\r\n" + 
-	        		"                        <p class=\"descriptors\">From</p>\r\n" + 
-	        		"                        <p class=\"descriptors\" style=\"margin-left: 140px;\">To</p>\r\n" + 
-	        		"                    </div>\r\n" + 
-	        		"                    <div id=\"stat_date_picker\">\r\n" + 
-	        		"                    <input type=\"date\" id=\"from\" name=\"from\">\r\n" + 
-	        		"                    <input type=\"date\" id=\"to\" name=\"to\">\r\n" + 
-	        		"                </div>\r\n" + 
-	        		"            </div>\r\n" + 
-	        		"            <div>\r\n" + 
-	        		"                <p class=\"descriptors\">Activity</p>\r\n" + 
-	        		"                <div id=\"activity_picker\">\r\n" + 
-	        		"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\">\r\n" + 
-	        		"                        <option value=\"SDP\">SDP</option>\r\n" + 
-	        		"                        <option value=\"SRS\">SRS</option>\r\n" + 
-	        		"                        <option value=\"SVVS\">SVVS</option>\r\n" + 
-	        		"                        <option value=\"STLDD\">STLDD</option>\r\n" + 
-	        		"                        <option value=\"SVVI\">SVVI</option>\r\n" + 
-	        		"                        <option value=\"SDDD\">SDDD</option>\r\n" + 
-	        		"                        <option value=\"SVVR\">SVVR</option>\r\n" + 
-	        		"                        <option value=\"SSD\">SSD</option>\r\n" + 
-	        		"                        <option value=\"Slutrapport\">Slutrapport</option>\r\n" + 
-	        		"                        <option value=\"Funktionstest\">Funktionstest</option>\r\n" + 
-	        		"                        <option value=\"Systemtest\">Systemtest</option>\r\n" + 
-	        		"                        <option value=\"Regressionstest\">Regressionstest</option>\r\n" + 
-	        		"                        <option value=\"Mote\">Möte</option>\r\n" + 
-	        		"                        <option value=\"Forelasning\">Föreläsning</option>\r\n" + 
-	        		"                        <option value=\"Ovning\">Övning</option>\r\n" + 
-	        		"                        <option value=\"Terminalovning\">Terminalövning</option>\r\n" + 
-	        		"                        <option value=\"Sjalvstudier\">Självstudier</option>\r\n" + 
-	        		"                        <option value=\"Ovrigt\">Övrigt</option>\r\n" + 
-	        		"                      </select>\r\n" + 
-	        		"                        \r\n" + 
-	        		"                </div>\r\n" + 
-	        		"            </div>\r\n" + 
-	        		"            <div>\r\n" + 
-	        		"                <p class=\"descriptors\">Role</p>\r\n" + 
-	        		"                <div id=\"activity_picker\">\r\n" + 
-	        		"                    <select id=\"act_picker\" name=\"role\" form=\"filter_form\">\r\n" + 
-	        		"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
-	        		"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
-	        		"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
-	        		"                        <option value=\"Testare\">Testare</option>\r\n" + 
-	        		"                      </select>\r\n" + 
-	        		"                        \r\n" + 
-	        		"                </div>\r\n" + 
-	        		"            </div>\r\n" + 
-	        		"                <input class=\"submitBtn\" type=\"submit\" value=\"Search\">\r\n" + 
-	        		"                </div>\r\n" + 
-	        		"              </form> \r\n" + 
-	        		"        </div>\r\n" + 
-	        		"        <div>\r\n" + 
-	        		"            <table id=\"stats\">\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <th>Total</th>\r\n" + 
-	        		"                  <th>V.4</th>\r\n" + 
-	        		"                  <th>V.5</th>\r\n" + 
-	        		"                  <th>TOT</th>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SDP</td>\r\n" + 
-	        		"                  <td>4324</td>\r\n" + 
-	        		"                  <td>234</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SRS</td>\r\n" + 
-	        		"                  <td>234</td>\r\n" + 
-	        		"                  <td>21</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SVVS</td>\r\n" + 
-	        		"                  <td>0</td>\r\n" + 
-	        		"                  <td>31</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SVVI</td>\r\n" + 
-	        		"                  <td>32</td>\r\n" + 
-	        		"                  <td>70</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>STLDD</td>\r\n" + 
-	        		"                  <td>30</td>\r\n" + 
-	        		"                  <td>21</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SDDD</td>\r\n" + 
-	        		"                  <td>340</td>\r\n" + 
-	        		"                  <td>560</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SVVR</td>\r\n" + 
-	        		"                  <td>340</td>\r\n" + 
-	        		"                  <td>560</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>SSD</td>\r\n" + 
-	        		"                  <td>32</td>\r\n" + 
-	        		"                  <td>32</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>PFR</td>\r\n" + 
-	        		"                  <td>4324</td>\r\n" + 
-	        		"                  <td>41</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                  <td>Mï¿½te(p-grupp)</td>\r\n" + 
-	        		"                  <td>40</td>\r\n" + 
-	        		"                  <td>90</td>\r\n" + 
-	        		"                </tr>\r\n" + 
-	        		"                <tr>\r\n" + 
-	        		"                    <td>Mï¿½te(s-chef)</td>\r\n" + 
-	        		"                    <td>8654</td>\r\n" + 
-	        		"                    <td>421</td>\r\n" + 
-	        		"                  </tr>\r\n" + 
-	        		"                  <tr>\r\n" + 
-	        		"                    <td>Funktionstest</td>\r\n" + 
-	        		"                    <td>412</td>\r\n" + 
-	        		"                    <td>412</td>\r\n" + 
-	        		"                  </tr>\r\n" + 
-	        		"                  <tr>\r\n" + 
-	        		"                    <td>Systemtest</td>\r\n" + 
-	        		"                    <td>32</td>\r\n" + 
-	        		"                    <td>83</td>\r\n" + 
-	        		"                  </tr>\r\n" + 
-	        		"                  <tr>\r\n" + 
-	        		"                    <td>Regressionstest</td>\r\n" + 
-	        		"                    <td>30</td>\r\n" + 
-	        		"                    <td>70</td>\r\n" + 
-	        		"                  </tr>\r\n" + 
-	        		"                  <tr>\r\n" + 
-	        		"                    <td><b>Total<b></td>\r\n" + 
-	        		"                    <td>9313</td>\r\n" + 
-	        		"                    <td>6234</td>\r\n" + 
-	        		"                  </tr>\r\n" + 
-	        		"              </table>\r\n" + 
-	        		"              \r\n" + 
-	        		"        </div>\r\n" + 
-	        		"    </div>";
+	private String statisticsPageForm(Statistic statistic) {
+			
+		
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("<body>");
+		sb.append("  <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n" + 
+				"    <div class=\"wrapper\">\r\n" + 
+				"        <div class=\"\">\r\n" + 
+				"            <form id=\"filter_form\" >\r\n" + 
+				"                <div id=\"stat_title\">\r\n" + 
+				"                    <p id=\"stat_title_text\">STATISTICS</p>\r\n" + 
+				"                </div>\r\n" + 
+				"\r\n" + 
+				"                <div class=\"filter_row\">\r\n" + 
+				"                    <div>\r\n" + 
+				"                    <p class=\"descriptors\">Username</p>\r\n" + 
+				"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\" required><br>\r\n" + 
+				"                    </div>\r\n" + 
+				"                    <div>\r\n" + 
+				"                        <div>\r\n" + 
+				"                        <p class=\"descriptors\">From</p>\r\n" + 
+				"                        <p class=\"descriptors\" style=\"margin-left: 140px;\">To</p>\r\n" + 
+				"                    </div>\r\n" + 
+				"                    <div id=\"stat_date_picker\">\r\n" + 
+				"                    <input type=\"date\" id=\"from\" name=\"from\">\r\n" + 
+				"                    <input type=\"date\" id=\"to\" name=\"to\">\r\n" + 
+				"                </div>\r\n" + 
+				"            </div>\r\n" + 
+				"            <div>\r\n" + 
+				"                <p class=\"descriptors\">Activity</p>\r\n" + 
+				"                <div id=\"activity_picker\">\r\n" + 
+				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\">");
+		sb.append(getActivitySelectOptions());
+		sb.append("</select>");
+		sb.append("                </div>\r\n" + 
+				"            </div>\r\n" + 
+				"            <div>\r\n" + 
+				"                <p class=\"descriptors\">Role</p>\r\n" + 
+				"                <div id=\"activity_picker\">\r\n" + 
+				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\">");
+		sb.append(getRoleSelectOptions());
+		sb.append("</select>");
+		sb.append("                </div>\r\n" + 
+				"            </div>\r\n" + 
+				"                <input class=\"submitBtn\" type=\"submit\" value=\"Search\">\r\n" + 
+				"                </div>\r\n" + 
+				"              </form> \r\n" + 
+				"        </div>\r\n");
+		
+		sb.append("<div>"); // Table goes here or nothingness :(
+		if (statistic == null) {
+			sb.append("<p id=\"nothing\">There seems to be nothing here :(</p><br>");
+			sb.append("<p id=\"nothingSub\"> That could be because filter options are empty or your filter options has yielded no results.</p>");
+		} else {
+			
+		}
+		sb.append("</div>");
+		
+		
+		
+		sb.append("</div>");
+		sb.append("</body>");
+		return sb.toString();
 	}
-    
+	
+	/**
+	 * Gets the options in HTML format for the activities.
+	 * @return
+	 */
+	private String getActivitySelectOptions() {
+		StringBuilder sbBuilder = new StringBuilder();
+		try {
+			List<ActivityType> activityTypes = dbService.getActivityTypes();
+			for (ActivityType activityType : activityTypes) {
+				sbBuilder.append("<option value=\"");
+				sbBuilder.append(activityType.getType());
+				sbBuilder.append("\">");
+				sbBuilder.append(activityType.getType());
+				sbBuilder.append("</option>\n");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return sbBuilder.toString();
+		
+	}
+	
+	private String getRoleSelectOptions() {
+		StringBuilder sbBuilder = new StringBuilder();
+		try {
+			List<Role> roles = dbService.getAllRoles();
+			for (Role role : roles) {
+				sbBuilder.append("<option value=\"");
+				sbBuilder.append(role.getRole());
+				sbBuilder.append("\">");
+				sbBuilder.append(role.getRole());
+				sbBuilder.append("</option>\n");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return sbBuilder.toString();
+	}
+	
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     	doGet(req, resp);
