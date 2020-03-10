@@ -2,6 +2,10 @@ package controller;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -9,6 +13,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import baseblocksystem.servletBase;
+import database.DatabaseService;
+import database.Statistic;
+import java.time.LocalDate;
+import java.time.ZoneId;
+
 
 /**
  * Servlet implementation class StatisticController
@@ -26,10 +35,21 @@ import baseblocksystem.servletBase;
 public class StatisticController extends servletBase {
 	
 	
+	private DatabaseService dbService; // Temporary, will be replaced later.
+	
 	public StatisticController() {
 		super();
+		try {
+			dbService = new DatabaseService();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
+	
+	private Statistic getUserStats(int userID, int projectID, LocalDate from, LocalDate to) throws Exception {
+		return dbService.getActivityStatistics(userID, projectID, from, to); // FIXME: how do we get projectId? Some hardcoded values for now.
+	}
 	
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -50,7 +70,22 @@ public class StatisticController extends servletBase {
 		System.out.println("activity: " + activity);
 		System.out.println("role: " + role);
 		
-        out.println(statisticsPageForm());
+		if (username == null || from == null || to == null || activity == null || role == null) {
+			out.println(statisticsPageForm());
+		} else {
+			try {
+				LocalDate fromDate = new SimpleDateFormat("dd-MMM-yyy").parse(from).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+				LocalDate toDate = new SimpleDateFormat("dd-MMM-yyy").parse(to).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+				
+				Statistic statistic = getUserStats(1, 1, fromDate, toDate);
+				
+				for (String s : statistic.getRowLabels()) {
+					System.out.println(s);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		
     }
 		
