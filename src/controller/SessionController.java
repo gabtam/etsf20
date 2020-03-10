@@ -56,6 +56,11 @@ public class SessionController extends servletBase {
 		}	
 		
     }
+    private boolean login(String name, String password) {
+    	
+		return false;
+    	
+    }
 		
 	private String loginRequestForm() {
 			return 	"<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/SessionController.css\">" +
@@ -75,4 +80,5 @@ public class SessionController extends servletBase {
 
 			+"</body></html>";
 	}
+	
 }
