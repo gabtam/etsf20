@@ -117,15 +117,12 @@ public class StatisticController extends servletBase {
 				switch (statsToGet(username, activity, role)) {
 				case 1:
 					statistic = dbService.getActivityStatistics(1, 1, fromDate, toDate);
-					System.out.println("w1: ");
 					break;
 				case 2:
 					statistic = dbService.getActivityStatistics(1, fromDate, toDate);
-					System.out.println("w2: ");
 					break;
 				case 3:
 					statistic = dbService.getRoleStatistics(1, getRoleIdFor(role, roles), fromDate, toDate);
-					System.out.println("got roleID: " + getRoleIdFor(role, roles));
 					break;
 				case -1:
 					return null;
