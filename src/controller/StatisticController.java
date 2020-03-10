@@ -26,7 +26,7 @@ import java.time.ZoneId;
  * 
  * Description of the class.
  * 
- * @author Ferit Bölezek ( Enter name if you've messed around with this file ;) )
+ * @author Ferit Bï¿½lezek ( Enter name if you've messed around with this file ;) )
  * @version 1.0
  * 
  */
@@ -54,7 +54,7 @@ public class StatisticController extends servletBase {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getPageIntro());
+		out.println(getHeader());
 		
 
 		String username = req.getParameter("username"); // get the string that the user entered in the form
@@ -71,6 +71,7 @@ public class StatisticController extends servletBase {
 		System.out.println("role: " + role);
 		
 		if (username == null || from == null || to == null || activity == null || role == null) {
+			out.println("<body>");
 			out.println(statisticsPageForm());
 		} else {
 			try {
@@ -131,7 +132,7 @@ public class StatisticController extends servletBase {
 	        		"                        <option value=\"Systemtest\">Systemtest</option>\r\n" + 
 	        		"                        <option value=\"Regressionstest\">Regressionstest</option>\r\n" + 
 	        		"                        <option value=\"Mote\">Möte</option>\r\n" + 
-	        		"                        <option value=\"Foreläsning\">Föreläsning</option>\r\n" + 
+	        		"                        <option value=\"Forelasning\">Föreläsning</option>\r\n" + 
 	        		"                        <option value=\"Ovning\">Övning</option>\r\n" + 
 	        		"                        <option value=\"Terminalovning\">Terminalövning</option>\r\n" + 
 	        		"                        <option value=\"Sjalvstudier\">Självstudier</option>\r\n" + 
@@ -210,12 +211,12 @@ public class StatisticController extends servletBase {
 	        		"                  <td>41</td>\r\n" + 
 	        		"                </tr>\r\n" + 
 	        		"                <tr>\r\n" + 
-	        		"                  <td>Möte(p-grupp)</td>\r\n" + 
+	        		"                  <td>Mï¿½te(p-grupp)</td>\r\n" + 
 	        		"                  <td>40</td>\r\n" + 
 	        		"                  <td>90</td>\r\n" + 
 	        		"                </tr>\r\n" + 
 	        		"                <tr>\r\n" + 
-	        		"                    <td>Möte(s-chef)</td>\r\n" + 
+	        		"                    <td>Mï¿½te(s-chef)</td>\r\n" + 
 	        		"                    <td>8654</td>\r\n" + 
 	        		"                    <td>421</td>\r\n" + 
 	        		"                  </tr>\r\n" + 
@@ -250,5 +251,5 @@ public class StatisticController extends servletBase {
     	doGet(req, resp);
     }
 	
-	
+
 }
