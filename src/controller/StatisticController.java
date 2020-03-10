@@ -25,6 +25,7 @@ import sun.security.action.GetBooleanAction;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 
@@ -40,7 +41,7 @@ import java.util.List;
  * 
  */
 
-@WebServlet("/StatisticsPage")
+@WebServlet("/statistics")
 public class StatisticController extends servletBase {
 	
 	
@@ -67,21 +68,16 @@ public class StatisticController extends servletBase {
 		out.println(getHeader());
 		
 
-		String username = req.getParameter("username"); // get the string that the user entered in the form
-		String from = req.getParameter("from"); // get the entered password
+		String username = req.getParameter("username");
+		String from = req.getParameter("from");
 		String to = req.getParameter("to");
 		String activity = req.getParameter("activity");
 		String role = req.getParameter("role");
 		
 		
-		System.out.println("username: " + username);
-		System.out.println("from: " + from);
-		System.out.println("to: " + to);
-		System.out.println("activity: " + activity);
-		System.out.println("role: " + role);
+		out.println("<body>");
 		
 		if (username == null || from == null || to == null || activity == null || role == null) {
-			out.println("<body>");
 			out.println(statisticsPageForm(null));
 		} else {
 			try {
@@ -90,10 +86,9 @@ public class StatisticController extends servletBase {
 				
 				Statistic statistic = getUserStats(1, 1, fromDate, toDate);
 				
-				for (String s : statistic.getRowLabels()) {
-					System.out.println(s);
-				}
+				out.println(statisticsPageForm(statistic));
 			} catch (Exception e) {
+				out.println(statisticsPageForm(null));
 				e.printStackTrace();
 			}
 		}
@@ -140,7 +135,7 @@ public class StatisticController extends servletBase {
 				"            <div>\r\n" + 
 				"                <p class=\"descriptors\">Role</p>\r\n" + 
 				"                <div id=\"activity_picker\">\r\n" + 
-				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\">");
+				"                    <select id=\"act_picker\" name=\"role\" form=\"filter_form\">");
 		sb.append(getRoleSelectOptions());
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
@@ -150,11 +145,19 @@ public class StatisticController extends servletBase {
 				"              </form> \r\n" + 
 				"        </div>\r\n");
 		
-		sb.append("<div>"); // Table goes here or nothingness :(
+		sb.append("<div>"); // Table goes here or nothingness goes here :(
 		if (statistic == null) {
 			sb.append("<p id=\"nothing\">There seems to be nothing here :(</p><br>");
-			sb.append("<p id=\"nothingSub\"> That could be because filter options are empty or your filter options has yielded no results.</p>");
+			sb.append("<p id=\"nothingSub\"> That could be because filter options are empty/incorrect or your filter options has yielded no results.</p>");
 		} else {
+			
+			int tablesToGenerate = (statistic.getColumnLabels().length / 10) + 1;
+			
+			for (int i = 0; i < tablesToGenerate; i++) {
+				sb.append("<table id=\"stats\">\n");
+				sb.append("<tr>\n");
+				sb.append(getStatisticsDataTable(statistic,i));
+			}
 			
 		}
 		sb.append("</div>");
@@ -168,7 +171,7 @@ public class StatisticController extends servletBase {
 	
 	/**
 	 * Gets the options in HTML format for the activities.
-	 * @return
+	 * @return the HTML code for select options.
 	 */
 	private String getActivitySelectOptions() {
 		StringBuilder sbBuilder = new StringBuilder();
@@ -191,6 +194,10 @@ public class StatisticController extends servletBase {
 		
 	}
 	
+	/**
+	 * Gets the options in HTML format for the roles.
+	 * @return the HTML code for select options.
+	 */
 	private String getRoleSelectOptions() {
 		StringBuilder sbBuilder = new StringBuilder();
 		try {
@@ -208,6 +215,77 @@ public class StatisticController extends servletBase {
 		}
 		
 		
+		return sbBuilder.toString();
+	}
+	
+	
+	private String getStatisticsDataTable(Statistic statistic, int forTable) {
+		StringBuilder sbBuilder = new StringBuilder();
+		
+		String[] rowLabel = statistic.getRowLabels();
+		
+		sbBuilder.append("<table id=\"stats\">\n");
+		sbBuilder.append("<tr>\n");
+		sbBuilder.append("<th>Total</th>");
+		for (String lbl : statistic.getColumnLabels()) {
+			sbBuilder.append("<th>");
+			sbBuilder.append(lbl);
+			sbBuilder.append("</th>\n");
+		}
+		sbBuilder.append("<th>");
+		sbBuilder.append("Total");
+		sbBuilder.append("</th>\n");
+		sbBuilder.append("</tr>\n");
+		
+		int[][] data = statistic.getData();
+		int totalSum = 0;
+		
+		for (int i = 0; i < data.length; i++) {
+			int sum = 0;
+			
+			sbBuilder.append("<tr>\n");
+			
+				sbBuilder.append("<td>");
+				sbBuilder.append(rowLabel[i]);
+				sbBuilder.append("</td>\n");
+			
+			for (int j = 0; j < data[i].length; j++) {
+				sbBuilder.append("<td>");
+				sbBuilder.append(String.valueOf(data[i][j]));
+				sbBuilder.append("</td>\n");
+				sum += data[i][j];
+			}
+			sbBuilder.append("<td>");
+			sbBuilder.append(sum);
+			sbBuilder.append("</td>\n");
+			sbBuilder.append("</tr>\n");
+			totalSum += sum;
+		}
+		sbBuilder.append("<tr>");
+		sbBuilder.append("<td>");
+		sbBuilder.append("Total");
+		sbBuilder.append("</td>\n");
+		
+		int[] colSum = new int[data[0].length];
+		for (int i = 0; i < data.length; i++) {
+			 
+			for (int j = 0; j < data[i].length; j++) {
+				colSum[j] += data[i][j];
+			}
+		}
+		
+		for (int i : colSum) {
+			sbBuilder.append("<td>");
+			sbBuilder.append(String.valueOf(i));
+			sbBuilder.append("</td>\n");
+		}
+		
+		sbBuilder.append("<td>");
+		sbBuilder.append(String.valueOf(totalSum));
+		sbBuilder.append("</td>\n");
+		
+		sbBuilder.append("</tr>\n");
+		sbBuilder.append("</table>");
 		return sbBuilder.toString();
 	}
 	
