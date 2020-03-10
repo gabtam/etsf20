@@ -2,9 +2,7 @@ package controller;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.Date;
 import java.sql.SQLException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 import javax.servlet.ServletException;
@@ -12,20 +10,16 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.catalina.LifecycleListener;
-
-import com.sun.java.swing.ui.StatusBar;
-
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
 import database.Role;
 import database.Statistic;
-import sun.security.action.GetBooleanAction;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -84,9 +78,26 @@ public class StatisticController extends servletBase {
 				LocalDate fromDate = new SimpleDateFormat("dd-MMM-yyy").parse(from).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 				LocalDate toDate = new SimpleDateFormat("dd-MMM-yyy").parse(to).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 				
-				Statistic statistic = getUserStats(1, 1, fromDate, toDate);
+				int weeks = (int) ChronoUnit.WEEKS.between(fromDate, toDate);
+				List<Statistic> stats = new ArrayList<Statistic>();
 				
-				out.println(statisticsPageForm(statistic));
+
+					while(weeks > 0) {
+						
+						if (weeks > 10) {
+						Statistic statistic = getUserStats(1, 1, fromDate, fromDate.plusWeeks(10));
+						stats.add(statistic);
+						weeks = weeks - 10;
+						fromDate = fromDate.plusWeeks(11);
+						} else {
+							Statistic statistic = getUserStats(1, 1, fromDate, toDate);
+							stats.add(statistic);
+							weeks = 0;
+						}
+						
+					}
+				
+				out.println(statisticsPageForm(stats));
 			} catch (Exception e) {
 				out.println(statisticsPageForm(null));
 				e.printStackTrace();
@@ -94,8 +105,9 @@ public class StatisticController extends servletBase {
 		}
 		
     }
+
 		
-	private String statisticsPageForm(Statistic statistic) {
+	private String statisticsPageForm(List<Statistic> statistics) {
 			
 		
 		StringBuilder sb = new StringBuilder();
@@ -146,17 +158,14 @@ public class StatisticController extends servletBase {
 				"        </div>\r\n");
 		
 		sb.append("<div>"); // Table goes here or nothingness goes here :(
-		if (statistic == null) {
+		if (statistics == null) {
 			sb.append("<p id=\"nothing\">There seems to be nothing here :(</p><br>");
 			sb.append("<p id=\"nothingSub\"> That could be because filter options are empty/incorrect or your filter options has yielded no results.</p>");
 		} else {
 			
-			int tablesToGenerate = (statistic.getColumnLabels().length / 10) + 1;
 			
-			for (int i = 0; i < tablesToGenerate; i++) {
-				sb.append("<table id=\"stats\">\n");
-				sb.append("<tr>\n");
-				sb.append(getStatisticsDataTable(statistic,i));
+			for (int i = 0; i < statistics.size(); i++) {
+				sb.append(getStatisticsDataTable(statistics.get(i)));
 			}
 			
 		}
@@ -219,12 +228,12 @@ public class StatisticController extends servletBase {
 	}
 	
 	
-	private String getStatisticsDataTable(Statistic statistic, int forTable) {
+	private String getStatisticsDataTable(Statistic statistic) {
 		StringBuilder sbBuilder = new StringBuilder();
 		
 		String[] rowLabel = statistic.getRowLabels();
 		
-		sbBuilder.append("<table id=\"stats\">\n");
+		sbBuilder.append("<table style=\"margin-bottom:36px\" id=\"stats\">\n");
 		sbBuilder.append("<tr>\n");
 		sbBuilder.append("<th>Total</th>");
 		for (String lbl : statistic.getColumnLabels()) {
