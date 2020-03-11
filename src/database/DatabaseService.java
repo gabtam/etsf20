@@ -711,10 +711,10 @@ public class DatabaseService {
 	public ActivityReport updateActivityReport(ActivityReport activityReport) throws Exception {
 		String sql = "UPDATE ActivityReports "
 				+ "SET `activityTypeId` = ?, `activitySubTypeId` = ?, `timeReportId` = ?, `reportDate` = ?, `minutes` = ? "
-				+ "WHERE userId = ?";
+				+ "WHERE activityReportId = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
 		ps.setInt(1, activityReport.getActivityTypeId());
-		ps.setInt(2, activityReport.getActivitySubTypeId());
+		ps.setObject(2, activityReport.getActivitySubTypeId() == 0 ? null : activityReport.getActivitySubTypeId());
 		ps.setInt(3, activityReport.getTimeReportId());
 		ps.setDate(4, Date.valueOf(activityReport.getReportDate()));
 		ps.setInt(5, activityReport.getMinutes());
@@ -857,10 +857,7 @@ public class DatabaseService {
 		}
 
 		ps.close();
-		if (count > 0)
-			return true;
-		else
-			return false;
+		return count > 0;
 	}
 
 	/**
