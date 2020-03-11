@@ -871,24 +871,38 @@ public class DatabaseService {
 	 * @throws SQLException
 	 */
 	public TimeReport createTimeReport(TimeReport timeReport) throws SQLException {
-		String sql = "INSERT INTO TimeReports (`timeReportId`, `projectUserId`, `signedById`, `signedAt`, `year`, `week`, `updatedAt`, `finished`) "
-				+ "values (?, ?, ?, ?, ?, ?, ?, ?)";
+		String sql = "INSERT INTO TimeReports (`projectUserId`, `signedById`, `signedAt`, `year`, `week`, `updatedAt`, `finished`) "
+				+ "values (?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-		ps.setInt(1, timeReport.getTimeReportId());
-		ps.setInt(2, timeReport.getProjectUserId());
-		ps.setInt(3, timeReport.getSignedById());
-		ps.setTimestamp(4, Timestamp.valueOf(timeReport.getSignedAt()));
-		ps.setInt(5, timeReport.getYear());
-		ps.setInt(6, timeReport.getWeek());
-		ps.setTimestamp(7, Timestamp.valueOf(timeReport.getUpdatedAt()));
-		ps.setBoolean(8, timeReport.isFinished());
+		ps.setInt(1, timeReport.getProjectUserId());
+
+		if (timeReport.getSignedById() == 0) {
+			ps.setObject(2, null);
+		} else {
+			ps.setInt(2, timeReport.getSignedById());
+		}
+
+		if (timeReport.getSignedAt() == null) {
+			ps.setObject(3, null);
+		} else {
+			ps.setTimestamp(3, Timestamp.valueOf(timeReport.getSignedAt()));
+		}
+
+		ps.setInt(4, timeReport.getYear());
+		ps.setInt(5, timeReport.getWeek());
+
+		if (timeReport.getUpdatedAt() == null) {
+			timeReport.setUpdatedAt(LocalDateTime.now());
+		}
+		ps.setTimestamp(6, Timestamp.valueOf(timeReport.getUpdatedAt()));
+		ps.setBoolean(7, timeReport.isFinished());
 
 		ps.executeUpdate();
 		ResultSet rs = ps.getGeneratedKeys();
 
 		TimeReport newTR = null;
 		if (rs.next()) {
-			newTR = getTimeReportById(rs.getInt("timeReportId"));
+			newTR = getTimeReportById(rs.getInt(1));
 		}
 
 		ps.close();
