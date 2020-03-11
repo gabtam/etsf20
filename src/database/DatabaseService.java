@@ -182,6 +182,33 @@ public class DatabaseService {
 		ps.close();
 		return user;
 	}
+	
+	/**
+	 * Gets user associated with given timeReportId.
+	 * @param timeReportId -  The unique identifier of the timeReport
+	 * @return User model or null
+	 * @throws SQLException
+	 */
+	public User getUserByTimeReportId(int timeReportId) throws SQLException {
+		User user = null;
+
+		String sql = "SELECT Users.* " + 
+				"FROM TimeReports " + 
+				"JOIN ProjectUsers USING (projectUserId) " + 
+				"JOIN  Users USING (userId) " + 
+				"WHERE timeReportId = ?";
+		PreparedStatement ps = conn.prepareStatement(sql);
+		ps.setInt(1, timeReportId);
+
+		ResultSet rs = ps.executeQuery();
+
+		if (rs.next()) {
+			user = mapUser(rs);
+		}
+
+		ps.close();
+		return user;
+	}
 
 	/**
 	 * Gets all users
