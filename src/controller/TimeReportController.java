@@ -221,6 +221,7 @@ public class TimeReportController extends servletBase {
 	private String getActivityReports(int timeReportId, HttpServletRequest req) throws Exception {
 
 		TimeReport timeReport = dbService.getTimeReportById(timeReportId);
+		User reportOwner = null; //TODO: Vår egna metod :)
 		boolean isProjectLeader = isProjectLeader(req);
 		boolean reportIsSigned = timeReport.isSigned();
 		boolean reportIsFinished = timeReport.isFinished();
@@ -248,8 +249,7 @@ public class TimeReportController extends servletBase {
 					+ "<td>" + activitySubType + "</td>\r\n" 
 					+ "<td>" + aReport.getMinutes() + "</td>\r\n";
 			
-			
-			if(!reportIsSigned) { //If timereport isn't signed, show button for deleting timeReport, else dont show it.
+			if(!reportIsSigned && reportOwner == this.getLoggedInUser(req)) { //If timereport isn't signed, show button for deleting timeReport, else dont show it.
 				html += "<td> <form action=\"TimeReportPage?deleteActivityReportId=\""+aReport.getActivityReportId()+"&timeReportId=\"" + timeReportId + "\" method=\"get\">\r\n" + 
 						"		<input name=\"deleteActivityReportId\" type=\"hidden\" value=\""+aReport.getActivityReportId()+"\"></input>\r\n" + 
 						" <input name=\"timeReportId\" type=\"hidden\" value=\""+timeReportId+"\"></input>\r\n" + 
@@ -263,16 +263,21 @@ public class TimeReportController extends servletBase {
 		}
 		
 		html += "</tr>\r\n" + "</table>"; //Ends the HTML table
+		
 			if(isProjectLeader)	{ //If projectleader is looking at timereports, show sign/unsign buttons
 				
 				if(reportIsSigned) {
-					html += "<td> <form method=\"get\"> <button name=\"timeReportIdToUnsign\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
+					html += "<form method=\"get\"> <button name=\"timeReportIdToUnsign\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
 					+ "\"> Avsignera </button>  </form> \r\n" ;
 				}
 				
 				else if(!reportIsSigned && reportIsFinished) {
-					html += "<td> <form method=\"get\"> <button name=\"timeReportIdToSign\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
+					html += "<form method=\"get\"> <button name=\"timeReportIdToSign\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
 					+ "\"> Signera </button>  </form> \r\n";
+				}
+				
+				else if(!reportIsSigned && !reportIsFinished) {
+					html += "<body> Rapporten är inte markerad som redo för signering. </body> \r\n";
 				}
 			}
 			
