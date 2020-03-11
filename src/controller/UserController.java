@@ -36,14 +36,15 @@ public class UserController extends servletBase {
 	}
 
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		// TODO Auto-generated method stub
+		setProjectId(req, 1);
 		PrintWriter out = resp.getWriter();
 		out.println(getHeader());
 
 		String myName = "";
 
-		User loggedInUser;
+		User loggedInUser = null;
 		try {
 			loggedInUser = getLoggedInUser(req);
 			if (loggedInUser != null)
@@ -55,10 +56,10 @@ public class UserController extends servletBase {
 
 		// check that the user is logged in
 		if (!isLoggedIn(req))
-			resp.sendRedirect("LogIn");
+			resp.sendRedirect("SessionPage");
 		else
 
-		if (true) {
+		if (loggedInUser.isAdmin()) {
 			out.println("<h1>User Page " + "</h1>");
 
 			// check if the administrator wants to add a new user in the form
@@ -69,7 +70,7 @@ public class UserController extends servletBase {
 					if (!addPossible)
 						out.println("<p>Error: Suggested user name not possible to add</p>");
 				} else
-					out.println("<p>Error: Suggesten name not allowed</p>");
+					out.println("<p>Error: Suggested name not allowed</p>");
 			}
 
 			// check if the administrator wants to delete a user by clicking the URL in the
@@ -83,62 +84,34 @@ public class UserController extends servletBase {
 					out.println("<p>Error: URL wrong</p>");
 			}
 
-			String assignId = req.getParameter("selname");
-			String assignProject = req.getParameter("selproject");
-			String assignRole = req.getParameter("selrole");
-			if (assignId != null) {
-				int id = Integer.parseInt(assignId);
-				int proj =Integer.parseInt(assignProject);
-				int role = Integer.parseInt(assignRole);
-				addUserToProject(id, proj, role);
-			}
-			
-
-
 			try {
 				List<User> users = dbService.getAllUsers();
 				List<Project> projects = dbService.getAllProjects();
 				List<Role> roles = dbService.getAllRoles();
 				out.println("<p>Registered users:</p>");
 				out.println("<table border=" + addQuotes("1") + ">");
-				out.println("<tr><td>NAME</td><td></td><td>SELECT PROJECT</td><td>SELECT ROLE</td><td></td></tr>");
+				out.println("<tr><td>NAME</td><td></td><td></td></tr>");
 				for (User u : users) {
 					String name = u.getUsername();
 					String deleteURL = "UserPage?deletename=" + name;
 					String deleteCode = "<a href=" + addQuotes(deleteURL) + " onclick="
 							+ addQuotes("return confirm('Are you sure you want to delete " + name + "?')")
 							+ "> delete </a>";
-					String projectList = "<form name="+ addQuotes("rList" + u.getUserId())+ "method=" + addQuotes("get")+
-							"> <input list=" + addQuotes("pList") + " name="
-							+ addQuotes("pList" + u.getUserId()) + "> <datalist id=" + addQuotes("pList") + ">";
-					for (Project p : projects) {
-						projectList += "<option value =" + addQuotes(p.getName()) + ">";
-					}
-					projectList += "</datalist> </form>";
-
-					String roleList = "<form name="+ addQuotes("rList" + u.getUserId())+ "method=" + addQuotes("get")+
-							"> <input list=" + addQuotes("rList") + "> <datalist id=" + addQuotes("rList") + ">";
-					for (Role r : roles) {
-						roleList += "<option value =" + addQuotes(r.getRole()) + ">";
-					}
-					roleList += "</datalist> </form>";
-					String assignURL = "UserPage?assignid=" + u.getUserId();
-					String assignCode = "<a href=" + addQuotes(assignURL) + " onclick="
-							+ addQuotes("pList" + u.getUserId()) + ".submit()> assign </a>";
+					String resetURL = "UserPage?resetName=" + u.getUserId();
+					String resetCode = "<a href=" + addQuotes(resetURL) + " onclick="
+							+ addQuotes("return confirm('Are you sure you want to reset password for: " + name + "?')")
+							+ "> reset password </a>";
 
 					if (u.isAdmin()) {
 						deleteCode = "";
-						projectList = "";
-						roleList = "";
-						assignCode = "";
+						resetCode = "";
+
 					}
 
 					out.println("<tr>");
 					out.println("<td>" + name + "</td>");
 					out.println("<td>" + deleteCode + "</td>");
-					out.println("<td>" + projectList + "</td>");
-					out.println("<td>" + roleList + "</td>");
-					out.println("<td>" + assignCode + "</td>");
+					out.println("<td>" + resetCode + "</td>");
 					out.println("</tr>");
 				}
 				out.println("</table>");
@@ -148,23 +121,130 @@ public class UserController extends servletBase {
 				System.out.println("VendorError: " + ex.getErrorCode());
 			}
 			out.println(addUserForm());
+			// out.println(assignUserForm());
+
+			out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
+			out.println("<p><a href =" + addQuotes("SessionPage") + "> Log out </p>");
+			out.println("</body></html>");
+
+			String resetName = req.getParameter("resetName");
+			if (resetName != null) {
+				int reset = Integer.parseInt(resetName);
+				try {
+					out.print(resetPassword(reset));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} else
 			try {
-				out.println(assignUserForm());
-			} catch (SQLException e) {
+				if (isProjectLeader(req, getProjectId(req))) {
+					
+					//projektledarsida
+
+					out.println("<h1>User Page for Project Leader" + "</h1>");
+
+					// check if the administrator wants to add a new user in the form
+					String newName = req.getParameter("addname");
+					if (newName != null) {
+						if (checkNewName(newName)) {
+							boolean addPossible = addUser(newName);
+							if (!addPossible)
+								out.println("<p>Error: Suggested user name not possible to add</p>");
+						} else
+							out.println("<p>Error: Suggested name not allowed</p>");
+					}
+
+					// check if the administrator wants to delete a user by clicking the URL in the
+					// list
+
+					String deleteName = req.getParameter("deletename");
+					if (deleteName != null) {
+						if (checkNewName(deleteName)) {
+							deleteUser(deleteName);
+						} else
+							out.println("<p>Error: URL wrong</p>");
+					}
+
+					try {
+						List<User> users = dbService.getAllUsers();
+						List<Project> projects = dbService.getAllProjects();
+						List<Role> roles = dbService.getAllRoles();
+						out.println("<p>Registered users:</p>");
+						out.println("<table border=" + addQuotes("1") + ">");
+						out.println("<tr><td>NAME</td><td></td><td></td></tr>");
+						for (User u : users) {
+							String name = u.getUsername();
+							String deleteURL = "UserPage?deletename=" + name;
+							String deleteCode = "<a href=" + addQuotes(deleteURL) + " onclick="
+									+ addQuotes("return confirm('Are you sure you want to delete " + name + "?')")
+									+ "> delete </a>";
+							String resetURL = "UserPage?resetName=" + u.getUserId();
+							String resetCode = "<a href=" + addQuotes(resetURL) + " onclick="
+									+ addQuotes("return confirm('Are you sure you want to reset password for: " + name + "?')")
+									+ "> reset password </a>";
+
+							if (u.isAdmin()) {
+								deleteCode = "";
+								resetCode = "";
+
+							}
+
+							out.println("<tr>");
+							out.println("<td>" + name + "</td>");
+							out.println("<td>" + deleteCode + "</td>");
+							out.println("<td>" + resetCode + "</td>");
+							out.println("</tr>");
+						}
+						out.println("</table>");
+					} catch (SQLException ex) {
+						System.out.println("SQLException: " + ex.getMessage());
+						System.out.println("SQLState: " + ex.getSQLState());
+						System.out.println("VendorError: " + ex.getErrorCode());
+					}
+					out.println(addUserForm());
+					// out.println(assignUserForm());
+
+					out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
+					out.println("<p><a href =" + addQuotes("SessionPage") + "> Log out </p>");
+					out.println("</body></html>");
+
+					String resetName = req.getParameter("resetName");
+					if (resetName != null) {
+						int reset = Integer.parseInt(resetName);
+						try {
+							out.print(resetPassword(reset));
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+					}
+				}
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+	}
 
-			out.println("<p><a href =" + addQuotes("functionality.html") + "> Functionality selection page </p>");
-			out.println("<p><a href =" + addQuotes("LogIn") + "> Log out </p>");
-			out.println("</body></html>");
-		} else {
+	private String resetPassword(int reset) throws Exception {
+		User user = dbService.getUserById(reset);
+		String newPassword = generatePassword();
+		user.setPassword(newPassword);
+		String html = "<!DOCTYPE html>\n" + "<html>\n" + "<body>\n" + "\n" + "<script>\n"
+				+ "  alert(\"Password changed to: " + newPassword + " \");\n" + "</script>\n" + "\n" + "</body>\n"
+				+ "</html>\n" + "";
+		dbService.updateUser(user);
+		return html;
 
-		}
 	}
 
 	public String addUserForm() {
-		
+
 		String html;
 		html = "<p> <form name=" + addQuotes("input");
 		html += " method=" + addQuotes("get");
@@ -173,34 +253,33 @@ public class UserController extends servletBase {
 		html += "</form>";
 		return html;
 	}
-	
-	public String assignUserForm() throws SQLException {
-		List<User> users = dbService.getAllUsers();
-		List<Project> projects = dbService.getAllProjects();
-		List<Role> roles = dbService.getAllRoles();
-		String html;
-		html = "<p> Assign user to project. <form name="+addQuotes("assign")+" method ="+addQuotes("get")+
-				"<p> Name: <select name="+addQuotes("selname")+">";
-		for(User u:users) {
-			html += "<option value ="+ u.getUserId() + ">"+u.getUsername()+"</option>";
-		}
-		html += "</select> Project: <select name="+addQuotes("selproject")+">";
-		for(Project p:projects) {
-			html += "<option value =" + p.getProjectId() + ">"+p.getName()+"</option>";
-		}
-		html += "</select> Role: <select name="+addQuotes("selrole")+">";
-		for(Role r:roles) {
-			html += "<option value =" + r.getRoleId() + ">"+r.getRole()+"</option>";
-		}
-		html += "<input type="+ addQuotes("submit") + "value=" +addQuotes("Assign")+"> </form>";
-		return html;
-	}
+
+//	public String assignUserForm() throws SQLException {
+//		List<User> users = dbService.getAllUsers();
+//		List<Project> projects = dbService.getAllProjects();
+//		List<Role> roles = dbService.getAllRoles();
+//		String html;
+//		html = "<p> Assign user to project. <form name="+addQuotes("assign")+" method ="+addQuotes("get")+
+//				"<p> Name: <select name="+addQuotes("selname")+">";
+//		for(User u:users) {
+//			html += "<option value ="+ u.getUserId() + ">"+u.getUsername()+"</option>";
+//		}
+//		html += "</select> Project: <select name="+addQuotes("selproject")+">";
+//		for(Project p:projects) {
+//			html += "<option value =" + p.getProjectId() + ">"+p.getName()+"</option>";
+//		}
+//		html += "</select> Role: <select name="+addQuotes("selrole")+">";
+//		for(Role r:roles) {
+//			html += "<option value =" + r.getRoleId() + ">"+r.getRole()+"</option>";
+//		}
+//		html += "<input type="+ addQuotes("submit") + "value=" +addQuotes("Assign")+"> </form>";
+//		return html;
+//	}
 
 	private boolean addUser(String name) {
 		boolean resultOk = true;
 		try {
 			String newPassword = generatePassword();
-			System.out.println(newPassword);
 			User u = new User(0, name, newPassword, false);
 			dbService.createUser(u);
 		} catch (Exception err) {
