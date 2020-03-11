@@ -59,6 +59,12 @@ public class TimeReport {
 	
 	public void sign(int userId) {
 		signedById = userId;
+		signedAt = LocalDateTime.now();
+	}
+	 
+	public void unsign() {
+		signedById = 0;
+		signedAt = null;
 	}
 	
 	public LocalDateTime getSignedAt() {
