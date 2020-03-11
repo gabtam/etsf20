@@ -41,8 +41,6 @@ public class SessionController extends servletBase {
 		String name = req.getParameter("username"); // get the string that the user entered in the form
 		String password = req.getParameter("password"); // get the entered password
 
-		System.out.println(name);
-		System.out.println(password);
 
 		if (name != null && password != null) {
 			if (login(name, password)) {
