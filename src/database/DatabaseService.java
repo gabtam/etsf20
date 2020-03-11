@@ -676,26 +676,26 @@ public class DatabaseService {
 	 * @throws SQLException
 	 */
 	public ActivityReport createActivityReport(ActivityReport activityReport) throws SQLException {
-		String sql = "INSERT INTO ActivityReports (`activityReportId`, `activityTypeId`, `activitySubTypeId`, `timeReportId`, `reportDate`, `minutes`) " + 
-					 "values (?, ?, ?, ?, ?, ?)";
+		String sql = "INSERT INTO ActivityReports (`activityTypeId`, `activitySubTypeId`, `timeReportId`, `reportDate`, `minutes`) "
+				+ "values (?, ?, ?, ?, ?)";
 		PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-		ps.setInt(1, activityReport.getActivityReportId());
-		ps.setInt(2, activityReport.getActivityTypeId());
-		ps.setInt(3, activityReport.getActivitySubTypeId());
-		ps.setInt(4, activityReport.getTimeReportId());
-		ps.setDate(5, Date.valueOf(activityReport.getReportDate()));
-		ps.setInt(6, activityReport.getMinutes());
-		
+
+		ps.setInt(1, activityReport.getActivityTypeId());
+		ps.setObject(2, activityReport.getActivitySubTypeId() == 0 ? null : activityReport.getActivitySubTypeId());
+		ps.setInt(3, activityReport.getTimeReportId());
+		ps.setDate(4, Date.valueOf(activityReport.getReportDate()));
+		ps.setInt(5, activityReport.getMinutes());
+
 		ps.executeUpdate();
 		ResultSet rs = ps.getGeneratedKeys();
-		
+
 		ActivityReport newAR = null;
-		if(rs.next()) {
-			newAR = getActivityReport(rs.getInt("activityReportId"));
+		if (rs.next()) {
+			newAR = getActivityReport(rs.getInt(1));
 		}
-		
+
 		ps.close();
-		return newAR;		
+		return newAR;
 	}
 	
 	/**
