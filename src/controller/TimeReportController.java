@@ -58,10 +58,11 @@ public class TimeReportController extends servletBase {
 
 	
 	  
-	  private void createActivityReport(int activityTypeId, int
+	  private ActivityReport createActivityReport(int activityTypeId, int
 	  activitySubTypeId, LocalDate date, int week, int minutes, int userId, int projectId ) throws SQLException {
 	  
 		TimeReport timereport = null;
+		ActivityReport activityReport = null;
 		  
 		if(dbService.hasTimeReport(week, date.getYear(), userId, projectId)) {// Does timereport this week exist?
 			
@@ -74,38 +75,41 @@ public class TimeReportController extends servletBase {
 		}
 		else {
 			timereport = dbService.createTimeReport(new TimeReport(0, 1/*ska bytas*/, 0, LocalDateTime.now(), date.getYear(), week, LocalDateTime.now(), false)); //TODO: ProjectuserID get samt signedAt (och signedBy?)
-			}
+		}
 	  
 	 
 		if(minutes > 1440) {
 			new Exception("För många minuter rapporterade under ett dygn"); 
 		}
 		else {
-			dbService.createActivityReport(new ActivityReport(0, activityTypeId, activitySubTypeId, timereport.getTimeReportId(), date, minutes));
+			activityReport = dbService.createActivityReport(new ActivityReport(0, activityTypeId, activitySubTypeId, timereport.getTimeReportId(), date, minutes));
 		}
  
+		return activityReport;
+		
 	  }
 	
 
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		try{
-			
-		//TODO: Fixa vecka när man skapar rapport
 		
 		//TODO: Datum picker när man skapar rapporter, finns HTML standard grej <input type= "date" >
-		//TRY/CATCH RUNT HELA
+			//TODO: Kan ha flera tidsrapporter under samma vecka
+			//TODO: NullPointer, skapa tidrapport utan vecka
+			//TODO: Vecka över 53 ska inte gå
+			//TODO: nullpointer, skapa aktivitetsrapport med för stor tid
 				
 		PrintWriter out = resp.getWriter();
-		setUserId(req,19); //USER ID 19 = PROJECTLEADER
+		setUserId(req,1); //USER ID 19 = PROJECTLEADER
 		this.setIsLoggedIn(req, true);
 		setProjectId(req, 1);		
-		
+	
 	/*	TimeReport tr = dbService.getTimeReportById(4);
 		tr.sign(1);												FOR TESTING TO SIGN TIMEREPORT
 		dbService.updateTimeReport(tr);*/ 
 		
-		User loggedInUser = dbService.getUserById(19); // SKA VARA SEN this.getLoggedInUser(req);
+		User loggedInUser = dbService.getUserById(1); // SKA VARA SEN this.getLoggedInUser(req);
 
 		String activityType = req.getParameter("activity");
 		String subType = req.getParameter("subType");
@@ -118,11 +122,13 @@ public class TimeReportController extends servletBase {
 		String timeReportFinishedId = req.getParameter("timeReportFinishedId");
 		String deleteTimeReportId = req.getParameter("deleteTimeReportId");
 		String showAllUnsignedReports = req.getParameter("showAllUnsignedReports");
+		String timeReportNotFinishedId = req.getParameter("timeReportNotFinishedId");
 		
 		if(activityType != null && subType != null && timeSpent != null && addReportWeek != null && timeReportId != null) {
 			
 			int activityTypeId = 0;
 			int activitySubTypeId = 0;
+			ActivityReport activityReport;
 			
 			List<ActivityType> typeList = dbService.getActivityTypes();			//get activity typeID
 			for(ActivityType at : typeList) {
@@ -146,10 +152,12 @@ public class TimeReportController extends servletBase {
 			
 			activitySubTypeId = 1; //TODO: Denna är konstig
 			
-			createActivityReport( activityTypeId, activitySubTypeId, LocalDate.now(),  Integer.parseInt(addReportWeek),  
+			activityReport = createActivityReport( activityTypeId, activitySubTypeId, LocalDate.now(),  Integer.parseInt(addReportWeek),  
 					Integer.parseInt(timeSpent),  this.getLoggedInUser(req).getUserId(),  this.getProjectId(req) ); //TODO: LocalDate.now() ska bytas mot en datepicker som skickas med från activityreport meotden
 			
-			TimeReport timereport = dbService.getTimeReportById(Integer.parseInt(timeReportId)); //get timereport		
+			
+			
+			TimeReport timereport = dbService.getTimeReportById(activityReport.getTimeReportId()); //get timereport		
 			out.print(getActivityReports(timereport.getTimeReportId(), req)); //Returns to the view of all activityreports for that timereport
 			
 			return;
@@ -173,6 +181,15 @@ public class TimeReportController extends servletBase {
 			
 			out.println(getUnsignedTimeReports(req));
 			return;
+		}
+		
+		if(timeReportNotFinishedId != null) {
+			
+			TimeReport timeReport = dbService.getTimeReportById(Integer.parseInt(timeReportNotFinishedId));
+			timeReport.setFinished(false);
+			dbService.updateTimeReport(timeReport);
+			out.println(getUserTimeReports(loggedInUser, req));
+			return;			
 		}
 		
 		if(timeReportFinishedId != null) {
@@ -201,8 +218,6 @@ public class TimeReportController extends servletBase {
 			out.print(getActivityReports(Integer.parseInt(timeReportId), req));			
 			return;
 		}
-		//TODO: Visa egna tidsrapporter - Om url finns, om projektledare visa alla rapporter
-		//knapp -> ny sida för att visa alla users -> en knapp till varje user för att selecta deras rapporter
 		
 			out.println(getUserTimeReports(loggedInUser, req)); //Standard case
 			
@@ -221,7 +236,7 @@ public class TimeReportController extends servletBase {
 	private String getActivityReports(int timeReportId, HttpServletRequest req) throws Exception {
 
 		TimeReport timeReport = dbService.getTimeReportById(timeReportId);
-		User reportOwner = null; //TODO: Vår egna metod :)
+		User reportOwner = dbService.getUserByTimeReportId(timeReportId);
 		boolean isProjectLeader = isProjectLeader(req);
 		boolean reportIsSigned = timeReport.isSigned();
 		boolean reportIsFinished = timeReport.isFinished();
@@ -249,13 +264,13 @@ public class TimeReportController extends servletBase {
 					+ "<td>" + activitySubType + "</td>\r\n" 
 					+ "<td>" + aReport.getMinutes() + "</td>\r\n";
 			
-			if(!reportIsSigned && reportOwner == this.getLoggedInUser(req)) { //If timereport isn't signed, show button for deleting timeReport, else dont show it.
+			if(!reportIsSigned && reportOwner == this.getLoggedInUser(req)) { //If timereport isn't signed, show button for deleting activity, else dont show it.
 				html += "<td> <form action=\"TimeReportPage?deleteActivityReportId=\""+aReport.getActivityReportId()+"&timeReportId=\"" + timeReportId + "\" method=\"get\">\r\n" + 
 						"		<input name=\"deleteActivityReportId\" type=\"hidden\" value=\""+aReport.getActivityReportId()+"\"></input>\r\n" + 
 						" <input name=\"timeReportId\" type=\"hidden\" value=\""+timeReportId+"\"></input>\r\n" + 
 						"		<input type=\"submit\" value=\"Ta bort\"></input>\r\n" + 
 						"	</td> \r\n"
-					  + "</form>";//Add activity report button ;	//TODO: ska gå att tabort aktivitetsrapport om den inte är signerad
+					  + "</form>";	//TODO: ska gå att tabort aktivitetsrapport om den inte är signerad
 				
 			}
 			
@@ -283,14 +298,20 @@ public class TimeReportController extends servletBase {
 			
 			
 			if(timeReport.getProjectUserId() == this.getLoggedInUser(req).getUserId() && !timeReport.isFinished()) { //If timereport owner is the one logged in and looking at this screen AND timereport already exists and isnt marked as finished
-				html += "<form action=\"TimeReportPage?week=\""+timeReport.getWeek()+"&timeReportId=\"" + timeReportId + "\" method=\"get\">\r\n" + 
+				html += "<form action=\"TimeReportPage?week=\""+timeReport.getWeek()+"&timeReportId=\"" + timeReportId + "\" method=\"get\">\r\n" +  //Show button for adding activity
 						"		<input name=\"addReportWeek\" type=\"hidden\" value=\""+timeReport.getWeek()+"\"></input>\r\n" + 
 						" <input name=\"timeReportId\" type=\"hidden\" value=\""+timeReportId+"\"></input>\r\n" + 
 						"		<input type=\"submit\" value=\"Lägg till ny aktivitet.\"></input>\r\n" + 
-						"	</form>";//Add activity report button 
+						"	</form>";
 				
 				html +=	"<td> <form action = \"TimeReportPage?timeReportFinishedId=\""+timeReport.getTimeReportId()+"\" method=\"get\"> <button name=\"timeReportFinishedId\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
-				+ "\"> Markera tidrapport som färdig. </button>  </form> \r\n";										//Mark activity report as finished
+				+ "\"> Markera tidrapport som redo för signering. </button>  </form> \r\n";										//Mark activity report as finished
+			}
+			
+			else if(timeReport.getProjectUserId() == this.getLoggedInUser(req).getUserId() && timeReport.isFinished()) {
+				
+				html +=	"<td> <form action = \"TimeReportPage?timeReportNotFinishedId=\""+timeReport.getTimeReportId()+"\" method=\"get\"> <button name=\"timeReportNotFinishedId\" type=\"submit\" value=\"" + timeReport.getTimeReportId() 
+				+ "\"> Avmarkera tidrapport som redo för signering. </button>  </form> \r\n";		
 			}
 
 		
