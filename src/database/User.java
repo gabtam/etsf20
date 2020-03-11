@@ -6,6 +6,13 @@ public class User {
 	private String password;
 	private boolean isAdmin;
 	
+	public User(String username, String password, boolean isAdmin) {
+		super();
+		this.username = username;
+		this.password = password;
+		this.isAdmin = isAdmin;
+	}
+
 	public User(int userId, String username, String password, boolean isAdmin) {
 		this.userId = userId;
 		this.username = username;
