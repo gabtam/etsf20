@@ -3,6 +3,7 @@ package database;
 import java.sql.*;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -903,18 +904,32 @@ public class DatabaseService {
 	 * @throws Exception
 	 */
 	public TimeReport updateTimeReport(TimeReport timeReport) throws Exception {
-		String sql = "UPDATE TimeReports "
-				+ "SET `timeReportId` = ?, `projectUserId` = ?, `signedById` = ?, `signedAt` = ?, "
-				+ "`year` = ?, `week` = ?, `updatedAt` = ?, `finished` = ? " + "WHERE userId = ?";
+		String sql = "UPDATE TimeReports " + "SET `projectUserId` = ?, `signedById` = ?, `signedAt` = ?, "
+				+ "`year` = ?, `week` = ?, `updatedAt` = ?, `finished` = ? " + "WHERE timeReportId = ?";
 		PreparedStatement ps = conn.prepareStatement(sql);
-		ps.setInt(1, timeReport.getTimeReportId());
-		ps.setInt(2, timeReport.getProjectUserId());
-		ps.setInt(3, timeReport.getSignedById());
-		ps.setTimestamp(4, Timestamp.valueOf(timeReport.getSignedAt()));
-		ps.setInt(5, timeReport.getYear());
-		ps.setInt(6, timeReport.getWeek());
-		ps.setTimestamp(7, Timestamp.valueOf(timeReport.getUpdatedAt()));
-		ps.setBoolean(8, timeReport.isFinished());
+		ps.setInt(1, timeReport.getProjectUserId());
+
+		if (timeReport.getSignedById() == 0) {
+			ps.setObject(2, null);
+		} else {
+			ps.setInt(2, timeReport.getSignedById());
+		}
+
+		if (timeReport.getSignedAt() == null) {
+			ps.setObject(3, null);
+		} else {
+			ps.setTimestamp(3, Timestamp.valueOf(timeReport.getSignedAt()));
+		}
+
+		ps.setInt(4, timeReport.getYear());
+		ps.setInt(5, timeReport.getWeek());
+
+		if (timeReport.getUpdatedAt() == null) {
+			timeReport.setUpdatedAt(LocalDateTime.now());
+		}
+		ps.setTimestamp(6, Timestamp.valueOf(timeReport.getUpdatedAt()));
+		ps.setBoolean(7, timeReport.isFinished());
+		ps.setInt(8, timeReport.getTimeReportId());
 
 		int updated = ps.executeUpdate();
 
