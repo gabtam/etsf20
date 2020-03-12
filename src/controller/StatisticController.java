@@ -65,9 +65,7 @@ public class StatisticController extends servletBase {
 		String to = req.getParameter("to");
 		String activity = req.getParameter("activity");
 		String role = req.getParameter("role");
-		
-		
-		out.println("<body>");
+				
 		
 		if (from == null || to == null) {
 			out.println(statisticsPageForm(null));
@@ -164,7 +162,23 @@ public class StatisticController extends servletBase {
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append("<body>");
-		sb.append("  <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n" + 
+		sb.append("  <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n" +
+				"<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/layout.css\">\n"+
+				"        <div id=\"headerBar\">\r\n" + 
+						"            <p id=\"sessionInfo\">Admin : testProject 3</p>\r\n" + 
+						"            <a id=\"logoutbtn\" href=\"SessionPage\">Logout</a>\r\n" + 
+						"        </div>\r\n" + 
+						"        <div id=\"wrapper\">\r\n" + 
+						"            <div id=\"navigation\">\r\n" + 
+						"                <ul id=\"menu\">\r\n" + 
+						"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">My Reports</a></li>\r\n" + 
+						"                    <li><a class=\"linkBtn\" href=\"projects\">Projects</a></li>\r\n" + 
+						"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">New report</a></li>\r\n" + 
+						"                    <li><a class=\"linkBtn\" href=\"statistics\">Statistics</a></li>\r\n" + 
+						"                    <li><a class=\"linkBtn\" href=\"#\" disabled>More</a></li>\r\n" + 
+						"                </ul>\r\n" + 
+						"            </div>\r\n" + 
+						"            <div id=\"bodyContent\">" +
 				"    <div class=\"wrapper\">\r\n" + 
 				"        <div class=\"\">\r\n" + 
 				"            <form id=\"filter_form\" >\r\n" + 
@@ -224,6 +238,8 @@ public class StatisticController extends servletBase {
 		
 		
 		
+		sb.append("</div>");
+		sb.append("</div>");
 		sb.append("</div>");
 		sb.append("    <script>\r\n" + 
 				"      function disableBoxes(event) {\r\n" + 

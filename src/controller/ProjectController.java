@@ -16,8 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.sun.beans.introspect.PropertyInfo.Name;
-import com.sun.java.swing.ui.StatusBar;
 
+import baseblocksystem.Administration;
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
@@ -60,9 +60,40 @@ public class ProjectController extends servletBase {
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
 		out.println(getHeader());
+		String sessionInfoUserName = "null";
+		String sessionInfoProjectName = "null";
+		try {
+			sessionInfoUserName = getLoggedInUser(req) == null ? "null" : getLoggedInUser(req).getUsername();
+			int sessionInfoProject = getProjectId(req);
+			
+			if(sessionInfoProject != 0)
+				sessionInfoProjectName = dbService.getProject(sessionInfoProject).getName();
+			else
+				sessionInfoProjectName = "null";
+
+			
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
-		
+		out.println("<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/layout.css\">\n");
+		out.println("        <div id=\"headerBar\">\r\n" + 
+				"            <p id=\"sessionInfo\">" + sessionInfoUserName + " : " + sessionInfoProjectName + "</p>\r\n" + 
+				"            <a id=\"logoutbtn\" href=\"SessionPage\">Logout</a>\r\n" + 
+				"        </div>\r\n" + 
+				"        <div id=\"wrapper\">\r\n" + 
+				"            <div id=\"navigation\">\r\n" + 
+				"                <ul id=\"menu\">\r\n" + 
+				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">My Reports</a></li>\r\n" + 
+				"                    <li><a class=\"linkBtn\" href=\"projects\">Projects</a></li>\r\n" + 
+				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">New report</a></li>\r\n" + 
+				"                    <li><a class=\"linkBtn\" href=\"statistics\">Statistics</a></li>\r\n" + 
+				"                    <li><a class=\"linkBtn\" href=\"#\" disabled>More</a></li>\r\n" + 
+				"                </ul>\r\n" + 
+				"            </div>\r\n" + 
+				"            <div id=\"bodyContent\">");
 		
 		try {
 			
@@ -85,8 +116,6 @@ public class ProjectController extends servletBase {
 			project = createProject(project);
 			
 			Role project_leader = dbService.getAllRoles().stream().filter(r -> r.getRole().equals("Projektledare")).findAny().orElse(null);
-			
-			System.out.println(project_leader.getRoleId());
 			
 			if (project_leader != null) {
 				dbService.addUserToProject(1, project.getProjectId(),project_leader.getRoleId());
@@ -230,6 +259,10 @@ public class ProjectController extends servletBase {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		out.println("            </div>\r\n" + 
+				"    </div>\r\n" + 
+				"\r\n" + 
+				"</body>");
 	}
 	
 	private String getUserFormsForProject(Project project) {
@@ -311,6 +344,7 @@ public class ProjectController extends servletBase {
 		
 		return sbBuilder.toString();
 	}
+
 	
 	
 	/**
