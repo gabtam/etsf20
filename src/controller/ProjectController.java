@@ -70,7 +70,7 @@ public class ProjectController extends servletBase {
 		String delete = req.getParameter("deleteProjectId");
 		String deleteUser = req.getParameter("deleteUserId");
 		String projId = req.getParameter("projectId");
-		String role = req.getParameter("newRole");
+		String newRole = req.getParameter("newRole");
 		String userId = req.getParameter("userId");
 		
 		//String edit
@@ -103,14 +103,36 @@ public class ProjectController extends servletBase {
 			dbService.removeUserFromProject(Integer.parseInt(deleteUser), Integer.parseInt(delete));
 		}
 		
-		if ( (userId != null && !userId.isEmpty()) && (projId != null && !projId.isEmpty()) && (role != null && !role.isEmpty()) ) {
-			int roleId = getRoleIdFor(role, roles);
+		if ( (userId != null && !userId.isEmpty()) && (projId != null && !projId.isEmpty()) && (newRole != null && !newRole.isEmpty()) ) {
+			int roleId = getRoleIdFor(newRole, roles);
 			dbService.updateUserProjectRole(Integer.parseInt(userId), Integer.parseInt(projId), roleId);
 		}
 		
+		
+		
 		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
 			out.println("<a href=\"projects\" style=\"padding:36px\">BACK</a>"
-					+ "<table id=\\\"table\\\"> \r\n" + 
+					+ "<h2>Add new user to project:</h2>\r\n" + 
+					"<form>\r\n" + 
+					"<table id=\"table\">\r\n" + 
+					"<tr>\r\n" + 
+					"<td><label for=\"pname\">enter username:</label>\r\n" + 
+					"<input type=\"text\" id=\"pname\" name=\"pname\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" minlength=\"3\" maxlength=\"20\" required><br><br>\r\n" + 
+					"</td>\r\n" + 
+					"<td>\r\n" + 
+					"<label for=\"rol_picker\">Pick role:<label>\r\n" + 
+					"<select id=\"rol_picker\" name=\"newRole\" form=\"user_form1\">\r\n" + 
+					 getRoleSelectOptions() +
+					"                    </select>\r\n" + 
+					"</td>\r\n" +
+					"<td> \r\n" + 
+					"<input type=\"submit\" value=\"Add user\">\r\n" + 
+					"</td>" +
+					"</tr>\r\n" + 
+					"</table>\r\n" + 
+					"</form><br>\r\n" + 
+					"<h2>Active users in the project</h2>" +
+					"<table id=\\\"table\\\"> \r\n" + 
 					"<tr>\r\n" + 
 					"<th>Username</th>\r\n" + 
 					"<th colspan=\\\"4\\\">Settings</th>\r\n" + 
@@ -246,6 +268,33 @@ public class ProjectController extends servletBase {
 					sbBuilder.append("\" selected=\"selected\">");
 				else
 					sbBuilder.append("\">");
+				sbBuilder.append(role.getRole());
+				sbBuilder.append("</option>\n");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		return sbBuilder.toString();
+	}
+	
+	
+	/**
+	 * Gets the options in HTML format for the roles.
+	 * @return the HTML code for select options.
+	 */
+	private String getRoleSelectOptions() {
+		StringBuilder sbBuilder = new StringBuilder();
+		try {
+			List<Role> roles = dbService.getAllRoles();
+			for (Role role : roles) {
+				sbBuilder.append("<option value=\"");
+				sbBuilder.append(role.getRole());
+				sbBuilder.append("\">");
 				sbBuilder.append(role.getRole());
 				sbBuilder.append("</option>\n");
 			}
