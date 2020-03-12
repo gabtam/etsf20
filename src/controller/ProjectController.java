@@ -15,6 +15,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.sun.java.swing.ui.StatusBar;
+
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
@@ -38,6 +40,8 @@ import database.User;
 public class ProjectController extends servletBase {
 	
 	private DatabaseService dbService; // Temporary, will be replaced later.
+	
+	private List<Role> roles;
 	
 	
 	public ProjectController() {
@@ -64,11 +68,17 @@ public class ProjectController extends servletBase {
 			
 		String pname = req.getParameter("pname");
 		String delete = req.getParameter("deleteProjectId");
+		String deleteUser = req.getParameter("deleteUserId");
+		String projId = req.getParameter("projectId");
+		String role = req.getParameter("newRole");
+		String userId = req.getParameter("userId");
+		
+		//String edit
 		
 		if (pname != null && !pname.isEmpty()) {
 		
 			Project project = new Project(1, pname);
-			project = dbService.createProject(project);
+			project = createProject(project);
 			
 			Role project_leader = dbService.getAllRoles().stream().filter(r -> r.getRole().equals("Projektledare")).findAny().orElse(null);
 			
@@ -81,12 +91,21 @@ public class ProjectController extends servletBase {
 		
 		}
 		
-		if (delete != null && !delete.isEmpty()) {
+		if (delete != null && !delete.isEmpty() && (deleteUser == null || deleteUser.isEmpty())) {
 			Project projToDelete = plist.stream().filter(p -> p.getName().equals(delete)).findAny().orElse(null);
 			if(projToDelete != null) {
 				dbService.deleteProject(projToDelete.getProjectId());
 				plist.remove(projToDelete);
 			}
+		}
+		
+		if ((delete != null && !delete.isEmpty()) && (deleteUser != null || !deleteUser.isEmpty())) {
+			dbService.removeUserFromProject(Integer.parseInt(deleteUser), Integer.parseInt(delete));
+		}
+		
+		if ( (userId != null && !userId.isEmpty()) && (projId != null && !projId.isEmpty()) && (role != null && !role.isEmpty()) ) {
+			int roleId = getRoleIdFor(role, roles);
+			dbService.updateUserProjectRole(Integer.parseInt(userId), Integer.parseInt(projId), roleId);
 		}
 		
 		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
@@ -164,7 +183,7 @@ public class ProjectController extends servletBase {
 		try {
 			List<User> projectUsers = dbService.getAllUsers(project.getProjectId());
 			
-			
+
 			for (int i = 0; i < projectUsers.size(); i++) {
 				Role role = dbService.getRole(projectUsers.get(i).getUserId(), project.getProjectId());
 				sbBuilder.append("<tr>\n");
@@ -172,16 +191,19 @@ public class ProjectController extends servletBase {
 				sbBuilder.append("<td>");
 				sbBuilder.append(projectUsers.get(i).getUsername());
 				sbBuilder.append("</td>\n");
-				sbBuilder.append("<td>\n<input type=\"hidden\" name=\"username\" value=\"" + projectUsers.get(i).getUsername() + "\">\n</td>\n");
+				sbBuilder.append("<td>\n<input type=\"hidden\" name=\"userId\" value=\"" + projectUsers.get(i).getUserId() + "\">\n</td>\n");
 				sbBuilder.append("<td>\n");
-				sbBuilder.append("<select id=\"rol_picker\" name=\"role\" form=\"user_form" + (i+1) +"\">\n");
+				sbBuilder.append("</td>\n");
+				sbBuilder.append("<td>\n<input type=\"hidden\" name=\"projectId\" value=\"" + project.getProjectId() + "\">\n</td>\n");
+				sbBuilder.append("<td>\n");
+				sbBuilder.append("<select id=\"rol_picker\" name=\"newRole\" form=\"user_form" + (i+1) +"\">\n");
 				sbBuilder.append(getRoleSelectOptions(role));
 				sbBuilder.append("                    </select>\r\n" + 
 						"                </td>\r\n" + 
 						"            <td><input type=\"submit\" value=\"Update Role\"></td>\r\n" + 
 						"        </form>\r\n" + 
 						"		<td> | </td>\r\n" + 
-						"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
+						"                <td><a href=\"projects?deleteUserId=" + projectUsers.get(i).getUserId() + "&" + "deleteProjectId=" + project.getProjectId() +"\"" + ">remove from project</a></td>\r\n" + 
 						"            </tr>");
 			}
 			
@@ -200,6 +222,15 @@ public class ProjectController extends servletBase {
 		return sbBuilder.toString();
 	}
 	
+    private int getRoleIdFor(String name, List<Role> roles) {
+    	for (Role role : roles) {
+			if (role.getRole().equals(name))
+				return role.getRoleId();
+		}
+    	
+    	return 1;
+    }
+	
 	/**
 	 * Gets the options in HTML format for the roles.
 	 * @return the HTML code for select options.
@@ -207,7 +238,7 @@ public class ProjectController extends servletBase {
 	private String getRoleSelectOptions(Role projectRole) {
 		StringBuilder sbBuilder = new StringBuilder();
 		try {
-			List<Role> roles = dbService.getAllRoles();
+			roles = dbService.getAllRoles();
 			for (Role role : roles) {
 				sbBuilder.append("<option value=\"");
 				sbBuilder.append(role.getRole());
@@ -234,7 +265,12 @@ public class ProjectController extends servletBase {
 		return false;
 	}
 	
-	public Project createProject(String projectName) {
+	public Project createProject(Project proj) {
+		try {
+			return dbService.createProject(proj);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
 	
