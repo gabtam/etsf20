@@ -1,9 +1,13 @@
+body{
+	font-family: arial;
+}
+
 h2 {
-  font-family: arial, sans-serif;
+  font-family: arial;
 }
 
 table {
-  font-family: arial, sans-serif;
+  font-family: arial;
   border-collapse: collapse;
   width: 100%;
 }

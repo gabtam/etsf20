@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import baseblocksystem.servletBase;
+import database.ActivityType;
 import database.DatabaseService;
 import database.Project;
 import database.Role;
@@ -88,17 +89,32 @@ public class ProjectController extends servletBase {
 			}
 		}
 		
+		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
+			out.println("<a href=\"projects\" style=\"padding:36px\">BACK</a>"
+					+ "<table id=\\\"table\\\"> \r\n" + 
+					"<tr>\r\n" + 
+					"<th>Username</th>\r\n" + 
+					"<th colspan=\\\"4\\\">Settings</th>\r\n" + 
+					"</tr>\r\n" + 
+					"				\r\n" + 
+					getUserFormsForProject(new Project(Integer.parseInt(req.getParameter("editProject")),req.getParameter("editProjectName") ) ) +
+					"				\r\n" + 
+					"</table>");
+			return;
+		}
+		
 		
 		out.println("<h2>Projects</h2>\n" +
         "<table id=\"table\">\n" +
           "<tr>\n" +
             "<th>Project Name</th>\n" +
+          "<th colspan=\"2\"> Settings </th>\n" +
           "</tr>");
 		
 		for(int i = 0; i < plist.size(); i++) {
 			out.print("<tr>\n" + 
 						"<td>" + plist.get(i).getName() + "</td>\n" + 
-						"<td><a href=\"javascript:;\" id=\"editBtn\">edit</a></td>\n" + 
+						"<td><a href=\"projects?editProject=" + plist.get(i).getProjectId()  + "&" + "editProjectName=" + plist.get(i).getName()  +"\"" +  "id=\"editBtn\">edit</a></td>\n" + 
 						"<td><a href=\"projects?deleteProjectId=" + plist.get(i).getName() + "\">delete</a></td>\n" +
 					"</tr>\n");
 		}
@@ -118,87 +134,11 @@ public class ProjectController extends servletBase {
 				"            </div>\n" + 
 				"        </div>\n" +
 				"		</table>" +
-				"<div id=\"usersModal\" class=\"modal\">\r\n" + 
-				"    <div class=\"modal-content\">\r\n" + 
-				"        <span class=\"close2\">&times;</span>\r\n" + 
-				"        <h1>Users active in the project</h1>\r\n" + 
-				"\r\n" + 
-				"        <table id=\"tableUsers\">\r\n" + 
-				"            <tr>\r\n" + 
-				"                <th>Username</th>\r\n" + 
-				"                <th>Roles</th>\r\n" + 
-				"                <th>Removal</th>\r\n" + 
-				"            </tr>\r\n" + 
-				"            <tr>\r\n" + 
-				"                <td>Steve</td>\r\n" + 
-				"                <td>\r\n" + 
-				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
-				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
-				"                        <!-- AFTER HERE -->\r\n" + 
-				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
-				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
-				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
-				"                        <option value=\"Testare\">Testare</option>\r\n" + 
-				"                    </select>\r\n" + 
-				"                </td>\r\n" + 
-				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
-				"            </tr>\r\n" + 
-				"            <tr>\r\n" + 
-				"                <td>Jobs</td>\r\n" + 
-				"                <td>\r\n" + 
-				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
-				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
-				"                        <!-- AFTER HERE -->\r\n" + 
-				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
-				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
-				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
-				"                        <option value=\"Testare\">Testare</option>\r\n" + 
-				"                    </select>\r\n" + 
-				"                </td>\r\n" + 
-				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
-				"            </tr>\r\n" + 
-				"            <tr>\r\n" + 
-				"                <td>Tribute</td>\r\n" + 
-				"                <td>\r\n" + 
-				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
-				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
-				"                        <!-- AFTER HERE -->\r\n" + 
-				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
-				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
-				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
-				"                        <option value=\"Testare\">Testare</option>\r\n" + 
-				"                    </select>\r\n" + 
-				"                </td>\r\n" + 
-				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
-				"            </tr>\r\n" + 
-				"        </table>\r\n" + 
-				"        <form>\r\n" + 
-				"            <input type=\"submit\" value=\"Update Roles\">\r\n" + 
-				"        </form>\r\n" + 
-				"    </div>\r\n" + 
-				"</div>\r\n"+
 				"        <!-- create-new-project btn onclick-action (open popup) -->\n" + 
 				"        <script>\n" + 
 				"            var modal = document.getElementById(\"myModal\");\n" + 
 				"            var btn = document.getElementById(\"myBtn\");\n" + 
 				"            var span = document.getElementsByClassName(\"close1\")[0];\n" + 
-				"            btn.onclick = function() {\n" + 
-				"              modal.style.display = \"block\";\n" + 
-				"            }\n" + 
-				"            span.onclick = function() {\n" + 
-				"              modal.style.display = \"none\";\n" + 
-				"            }\n" + 
-				"            window.onclick = function(event) {\n" + 
-				"              if (event.target == modal) {\n" + 
-				"                modal.style.display = \"none\";\n" + 
-				"              }\n" + 
-				"            }\n" + 
-				"\n" + 
-				"        </script>" +
-				"        <script>\n" + 
-				"            var modal = document.getElementById(\"usersModal\");\n" + 
-				"            var btn = document.getElementById(\"editBtn\");\n" + 
-				"            var span = document.getElementsByClassName(\"close2\")[0];\n" + 
 				"            btn.onclick = function() {\n" + 
 				"              modal.style.display = \"block\";\n" + 
 				"            }\n" + 
@@ -219,6 +159,73 @@ public class ProjectController extends servletBase {
 		}
 	}
 	
+	private String getUserFormsForProject(Project project) {
+		StringBuilder sbBuilder = new StringBuilder();
+		try {
+			List<User> projectUsers = dbService.getAllUsers(project.getProjectId());
+			
+			
+			for (int i = 0; i < projectUsers.size(); i++) {
+				Role role = dbService.getRole(projectUsers.get(i).getUserId(), project.getProjectId());
+				sbBuilder.append("<tr>\n");
+				sbBuilder.append("<form id = \"user_form" + (i + 1) + "\">\n");
+				sbBuilder.append("<td>");
+				sbBuilder.append(projectUsers.get(i).getUsername());
+				sbBuilder.append("</td>\n");
+				sbBuilder.append("<td>\n<input type=\"hidden\" name=\"username\" value=\"" + projectUsers.get(i).getUsername() + "\">\n</td>\n");
+				sbBuilder.append("<td>\n");
+				sbBuilder.append("<select id=\"rol_picker\" name=\"role\" form=\"user_form" + (i+1) +"\">\n");
+				sbBuilder.append(getRoleSelectOptions(role));
+				sbBuilder.append("                    </select>\r\n" + 
+						"                </td>\r\n" + 
+						"            <td><input type=\"submit\" value=\"Update Role\"></td>\r\n" + 
+						"        </form>\r\n" + 
+						"		<td> | </td>\r\n" + 
+						"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
+						"            </tr>");
+			}
+			
+			
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		return sbBuilder.toString();
+	}
+	
+	/**
+	 * Gets the options in HTML format for the roles.
+	 * @return the HTML code for select options.
+	 */
+	private String getRoleSelectOptions(Role projectRole) {
+		StringBuilder sbBuilder = new StringBuilder();
+		try {
+			List<Role> roles = dbService.getAllRoles();
+			for (Role role : roles) {
+				sbBuilder.append("<option value=\"");
+				sbBuilder.append(role.getRole());
+				if(projectRole.getRoleId() == role.getRoleId())
+					sbBuilder.append("\" selected=\"selected\">");
+				else
+					sbBuilder.append("\">");
+				sbBuilder.append(role.getRole());
+				sbBuilder.append("</option>\n");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return sbBuilder.toString();
+	}
 	public boolean deleteProject(int projectId) {
 		return false;
 	}
