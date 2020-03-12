@@ -369,20 +369,41 @@ public class ProjectController extends servletBase {
 		
 		
 		return sbBuilder.toString();
-	}
-	public boolean deleteProject(int projectId) {
+	}	
+	public boolean deleteProject(int projectId) throws Exception {
+		if(dbService.getAllProjects().contains(dbService.getProject(projectId))) 
+		{
+			dbService.deleteProject(projectId);
+			return true;
+		}
 		return false;
 	}
 	
-	public boolean assignRole(User user, int projectId, int roleId) {
+	public boolean assignRole(User user, int projectId, int roleId) throws Exception {
+		if(dbService.getAllProjects().contains(dbService.getProject(projectId)) 
+				&& dbService.getAllUsers().contains(user)) 
+		{
+			for(int i=0; i< dbService.getAllRoles().size() ; i++) 
+			{
+				if(dbService.getAllRoles().get(i).getRoleId()==roleId) 
+				{
+					dbService.updateUserProjectRole(user.getUserId(), projectId, roleId);
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 	
-	public Project createProject(Project proj) {
-		try {
-			return dbService.createProject(proj);
-		} catch (SQLException e) {
-			e.printStackTrace();
+	public Project createProject(String projectName) throws SQLException {
+		int newId;
+		Project newProject;
+		newId = dbService.getAllProjects().get(dbService.getAllProjects().size()).getProjectId()+1;
+		newProject = new Project(newId, projectName);
+		if(!dbService.getAllProjects().contains(newProject)) 
+		{
+			dbService.createProject(new Project(newId, projectName));
+			return newProject;
 		}
 		return null;
 	}
