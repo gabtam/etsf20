@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.function.Predicate;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -54,11 +55,14 @@ public class ProjectController extends servletBase {
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
 		
-
 		
 		try {
 			
+		List<Project> plist = dbService.getAllProjects(1); // Hardcode to get projects for user with user_id = 1
+		//List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId()); Can't get user id by logged in user yet.
+			
 		String pname = req.getParameter("pname");
+		String delete = req.getParameter("deleteProjectId");
 		
 		if (pname != null && !pname.isEmpty()) {
 		
@@ -71,13 +75,19 @@ public class ProjectController extends servletBase {
 			
 			if (project_leader != null) {
 				dbService.addUserToProject(1, project.getProjectId(),project_leader.getRoleId());
+				plist.add(project);
 			}
 		
 		}
-			
-		//List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId()); Can't get user id by logged in user yet.
 		
-		List<Project> plist = dbService.getAllProjects(1); // Hardcode to get projects for user with user_id = 1
+		if (delete != null && !delete.isEmpty()) {
+			Project projToDelete = plist.stream().filter(p -> p.getName().equals(delete)).findAny().orElse(null);
+			if(projToDelete != null) {
+				dbService.deleteProject(projToDelete.getProjectId());
+				plist.remove(projToDelete);
+			}
+		}
+		
 		
 		out.println("<h2>Projects</h2>\n" +
         "<table id=\"table\">\n" +
@@ -88,8 +98,8 @@ public class ProjectController extends servletBase {
 		for(int i = 0; i < plist.size(); i++) {
 			out.print("<tr>\n" + 
 						"<td>" + plist.get(i).getName() + "</td>\n" + 
-						"<td>edit</td>\n" + 
-						"<td><a href=\"projects?delete=" + plist.get(i).getName() + "\">delete</a></td>\n" +
+						"<td><a href=\"javascript:;\" id=\"editBtn\">edit</a></td>\n" + 
+						"<td><a href=\"projects?deleteProjectId=" + plist.get(i).getName() + "\">delete</a></td>\n" +
 					"</tr>\n");
 		}
 		
@@ -99,31 +109,102 @@ public class ProjectController extends servletBase {
 				"        <!-- create-new-project btn popup window -->\n" + 
 				"        <div id=\"myModal\" class=\"modal\">   \n" + 
 				"            <div class=\"modal-content\">\n" + 
-				"                <span class=\"close\">&times;</span>\n" + 
+				"                <span class=\"close1\">&times;</span>\n" + 
 				"                  <label for=\"pname\">Project name:</label>\n" +
 				"				   <form>" +
 				"                  	<input type=\"text\" id=\"pname\" name=\"pname\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" minlength=\"3\" maxlength=\"20\" required><br><br>\n" + 
 				"                  	<input type=\"submit\" value=\"Create\" onclick=\"create();\">\n" + 
-				"					</form>" +
+				"					</form>\n" +
 				"            </div>\n" + 
 				"        </div>\n" +
+				"		</table>" +
+				"<div id=\"usersModal\" class=\"modal\">\r\n" + 
+				"    <div class=\"modal-content\">\r\n" + 
+				"        <span class=\"close2\">&times;</span>\r\n" + 
+				"        <h1>Users active in the project</h1>\r\n" + 
+				"\r\n" + 
+				"        <table id=\"tableUsers\">\r\n" + 
+				"            <tr>\r\n" + 
+				"                <th>Username</th>\r\n" + 
+				"                <th>Roles</th>\r\n" + 
+				"                <th>Removal</th>\r\n" + 
+				"            </tr>\r\n" + 
+				"            <tr>\r\n" + 
+				"                <td>Steve</td>\r\n" + 
+				"                <td>\r\n" + 
+				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
+				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
+				"                        <!-- AFTER HERE -->\r\n" + 
+				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
+				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
+				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
+				"                        <option value=\"Testare\">Testare</option>\r\n" + 
+				"                    </select>\r\n" + 
+				"                </td>\r\n" + 
+				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
+				"            </tr>\r\n" + 
+				"            <tr>\r\n" + 
+				"                <td>Jobs</td>\r\n" + 
+				"                <td>\r\n" + 
+				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
+				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
+				"                        <!-- AFTER HERE -->\r\n" + 
+				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
+				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
+				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
+				"                        <option value=\"Testare\">Testare</option>\r\n" + 
+				"                    </select>\r\n" + 
+				"                </td>\r\n" + 
+				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
+				"            </tr>\r\n" + 
+				"            <tr>\r\n" + 
+				"                <td>Tribute</td>\r\n" + 
+				"                <td>\r\n" + 
+				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\"\r\n" + 
+				"                        onchange=\"if (this.selectedIndex) disableBoxes(this);\">\r\n" + 
+				"                        <!-- AFTER HERE -->\r\n" + 
+				"                        <option value=\"Projektledare\">Projektledare</option>\r\n" + 
+				"                        <option value=\"Systemansvarig\">Systemansvarig</option>\r\n" + 
+				"                        <option value=\"Utvecklare\">Utvecklare</option>\r\n" + 
+				"                        <option value=\"Testare\">Testare</option>\r\n" + 
+				"                    </select>\r\n" + 
+				"                </td>\r\n" + 
+				"                <td><a href=\\\"projects?deleteProjectId=\" + plist.get(i).getName() + \" \\\">remove from project</a></td>\r\n" + 
+				"            </tr>\r\n" + 
+				"        </table>\r\n" + 
+				"        <form>\r\n" + 
+				"            <input type=\"submit\" value=\"Update Roles\">\r\n" + 
+				"        </form>\r\n" + 
+				"    </div>\r\n" + 
+				"</div>\r\n"+
 				"        <!-- create-new-project btn onclick-action (open popup) -->\n" + 
 				"        <script>\n" + 
-				"            // Get the modal\n" + 
 				"            var modal = document.getElementById(\"myModal\");\n" + 
-				"            // Get the button that opens the popup\n" + 
 				"            var btn = document.getElementById(\"myBtn\");\n" + 
-				"            // Get the <span> element that closes the modal\n" + 
-				"            var span = document.getElementsByClassName(\"close\")[0];\n" + 
-				"            // When the user clicks on the button, open the popup\n" + 
+				"            var span = document.getElementsByClassName(\"close1\")[0];\n" + 
 				"            btn.onclick = function() {\n" + 
 				"              modal.style.display = \"block\";\n" + 
 				"            }\n" + 
-				"            // When the user clicks on <span> (x), close the modal\n" + 
 				"            span.onclick = function() {\n" + 
 				"              modal.style.display = \"none\";\n" + 
 				"            }\n" + 
-				"            // When the user clicks anywhere outside of the modal, close it\n" + 
+				"            window.onclick = function(event) {\n" + 
+				"              if (event.target == modal) {\n" + 
+				"                modal.style.display = \"none\";\n" + 
+				"              }\n" + 
+				"            }\n" + 
+				"\n" + 
+				"        </script>" +
+				"        <script>\n" + 
+				"            var modal = document.getElementById(\"usersModal\");\n" + 
+				"            var btn = document.getElementById(\"editBtn\");\n" + 
+				"            var span = document.getElementsByClassName(\"close2\")[0];\n" + 
+				"            btn.onclick = function() {\n" + 
+				"              modal.style.display = \"block\";\n" + 
+				"            }\n" + 
+				"            span.onclick = function() {\n" + 
+				"              modal.style.display = \"none\";\n" + 
+				"            }\n" + 
 				"            window.onclick = function(event) {\n" + 
 				"              if (event.target == modal) {\n" + 
 				"                modal.style.display = \"none\";\n" + 
