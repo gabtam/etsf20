@@ -15,6 +15,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.sun.beans.introspect.PropertyInfo.Name;
 import com.sun.java.swing.ui.StatusBar;
 
 import baseblocksystem.servletBase;
@@ -42,6 +43,8 @@ public class ProjectController extends servletBase {
 	private DatabaseService dbService; // Temporary, will be replaced later.
 	
 	private List<Role> roles;
+	
+	private Project currentProject;
 	
 	
 	public ProjectController() {
@@ -72,6 +75,7 @@ public class ProjectController extends servletBase {
 		String projId = req.getParameter("projectId");
 		String newRole = req.getParameter("newRole");
 		String userId = req.getParameter("userId");
+		String initRole = req.getParameter("role");
 		
 		//String edit
 		
@@ -86,6 +90,7 @@ public class ProjectController extends servletBase {
 			
 			if (project_leader != null) {
 				dbService.addUserToProject(1, project.getProjectId(),project_leader.getRoleId());
+				out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY CREATED PROJECT: " + pname + "</p>");
 				plist.add(project);
 			}
 		
@@ -95,36 +100,63 @@ public class ProjectController extends servletBase {
 			Project projToDelete = plist.stream().filter(p -> p.getName().equals(delete)).findAny().orElse(null);
 			if(projToDelete != null) {
 				dbService.deleteProject(projToDelete.getProjectId());
+				out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY DELETED PROJECT:" + projToDelete.getName() + "</p>");
 				plist.remove(projToDelete);
 			}
 		}
 		
-		if ((delete != null && !delete.isEmpty()) && (deleteUser != null || !deleteUser.isEmpty())) {
+		if ((delete != null && !delete.isEmpty()) && (deleteUser != null && !deleteUser.isEmpty()) ) {
 			dbService.removeUserFromProject(Integer.parseInt(deleteUser), Integer.parseInt(delete));
+			out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY DELETED USER</p>");
 		}
 		
 		if ( (userId != null && !userId.isEmpty()) && (projId != null && !projId.isEmpty()) && (newRole != null && !newRole.isEmpty()) ) {
 			int roleId = getRoleIdFor(newRole, roles);
 			dbService.updateUserProjectRole(Integer.parseInt(userId), Integer.parseInt(projId), roleId);
+			out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY UPDATED ROLE TO: " + newRole +  "</p>");
+		}
+		
+		if ((userId != null && !userId.isEmpty()) && (projId != null && !projId.isEmpty()) && (initRole != null && !initRole.isEmpty())) {
+			List<User> allUsers = dbService.getAllUsers();
+			User user = allUsers.stream().filter(u -> u.getUsername().equals(userId)).findAny().orElse(null);
+			
+			if (user == null) {
+				out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">FAILED TO ADD USER: " + userId + ", reason: user does not exist.</p>");
+			} else {
+				
+				User sameUser = dbService.getAllUsers(Integer.parseInt(projId)).stream().filter(u -> u.getUsername().equals(userId)).findAny().orElse(null);
+				
+				if (sameUser == null) {
+					User findUser = allUsers.stream().filter(u -> u.getUsername().equals(userId)).findAny().orElse(null);
+					
+					dbService.addUserToProject(findUser.getUserId(), Integer.parseInt(projId), getRoleIdFor(initRole, roles));
+					out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">ADDED USER: " + userId +  "</p>");
+				} else {
+					out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">FAILED TO ADD USER: " + userId + ", reason: user is already in the project.</p>");
+				}
+			}
 		}
 		
 		
 		
 		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
+			Project p = new Project(Integer.parseInt(req.getParameter("editProject")),req.getParameter("editProjectName") );
+			currentProject = p;
 			out.println("<a href=\"projects\" style=\"padding:36px\">BACK</a>"
 					+ "<h2>Add new user to project:</h2>\r\n" + 
 					"<form>\r\n" + 
 					"<table id=\"table\">\r\n" + 
 					"<tr>\r\n" + 
 					"<td><label for=\"pname\">enter username:</label>\r\n" + 
-					"<input type=\"text\" id=\"pname\" name=\"pname\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" minlength=\"3\" maxlength=\"20\" required><br><br>\r\n" + 
-					"</td>\r\n" + 
+					"<input type=\"text\" id=\"pname\" name=\"userId\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" minlength=\"3\" maxlength=\"20\" required><br><br>\r\n" + 
+					"</td>\r\n" +
 					"<td>\r\n" + 
 					"<label for=\"rol_picker\">Pick role:<label>\r\n" + 
-					"<select id=\"rol_picker\" name=\"newRole\" form=\"user_form1\">\r\n" + 
+					"<select id=\"rol_picker\" name=\"role\" form=\"user_form1\">\r\n" + 
 					 getRoleSelectOptions() +
 					"                    </select>\r\n" + 
 					"</td>\r\n" +
+					"<td>\n<input type=\"hidden\" name=\"projectId\" value=\"" + currentProject.getProjectId() + "\">\n</td>\n" +
 					"<td> \r\n" + 
 					"<input type=\"submit\" value=\"Add user\">\r\n" + 
 					"</td>" +
@@ -132,13 +164,13 @@ public class ProjectController extends servletBase {
 					"</table>\r\n" + 
 					"</form><br>\r\n" + 
 					"<h2>Active users in the project</h2>" +
-					"<table id=\\\"table\\\"> \r\n" + 
+					"<table id=\"table\"> \r\n" + 
 					"<tr>\r\n" + 
 					"<th>Username</th>\r\n" + 
-					"<th colspan=\\\"4\\\">Settings</th>\r\n" + 
+					"<th colspan=\"6\">Settings</th>\r\n" + 
 					"</tr>\r\n" + 
 					"				\r\n" + 
-					getUserFormsForProject(new Project(Integer.parseInt(req.getParameter("editProject")),req.getParameter("editProjectName") ) ) +
+					getUserFormsForProject(p) +
 					"				\r\n" + 
 					"</table>");
 			return;
@@ -205,7 +237,6 @@ public class ProjectController extends servletBase {
 		try {
 			List<User> projectUsers = dbService.getAllUsers(project.getProjectId());
 			
-
 			for (int i = 0; i < projectUsers.size(); i++) {
 				Role role = dbService.getRole(projectUsers.get(i).getUserId(), project.getProjectId());
 				sbBuilder.append("<tr>\n");
@@ -224,7 +255,6 @@ public class ProjectController extends servletBase {
 						"                </td>\r\n" + 
 						"            <td><input type=\"submit\" value=\"Update Role\"></td>\r\n" + 
 						"        </form>\r\n" + 
-						"		<td> | </td>\r\n" + 
 						"                <td><a href=\"projects?deleteUserId=" + projectUsers.get(i).getUserId() + "&" + "deleteProjectId=" + project.getProjectId() +"\"" + ">remove from project</a></td>\r\n" + 
 						"            </tr>");
 			}
