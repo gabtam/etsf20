@@ -40,7 +40,6 @@ import database.User;
 @WebServlet("/projects")
 public class ProjectController extends servletBase {
 	
-	private DatabaseService dbService; // Temporary, will be replaced later.
 	
 	private List<Role> roles;
 	
@@ -49,11 +48,6 @@ public class ProjectController extends servletBase {
 	
 	public ProjectController() {
 		super();
-		try {
-			dbService = new DatabaseService();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
 	}
 
 	@Override
@@ -125,12 +119,14 @@ public class ProjectController extends servletBase {
 		
 		}
 		
-		if (delete != null && !delete.isEmpty() && (deleteUser == null || deleteUser.isEmpty())) {
+		if ( delete != null && !delete.isEmpty() && (deleteUser == null || deleteUser.isEmpty())) {
 			Project projToDelete = plist.stream().filter(p -> p.getName().equals(delete)).findAny().orElse(null);
-			if(projToDelete != null) {
-				dbService.deleteProject(projToDelete.getProjectId());
+			if(projToDelete != null && actionIsAllowed(req, Integer.valueOf(projToDelete.getProjectId()))) {
+				deleteProject(projToDelete.getProjectId());
 				out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY DELETED PROJECT:" + projToDelete.getName() + "</p>");
 				plist.remove(projToDelete);
+			} else {
+				out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">FAILED TO DELETE PROJECT:" + projToDelete.getName() +" REASON: You are not allowed to perform this action." +  "</p>");
 			}
 		}
 		
@@ -167,8 +163,8 @@ public class ProjectController extends servletBase {
 		}
 		
 		
-		
-		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
+
+		if (req.getParameter("editProject") != null && actionIsAllowed(req, Integer.valueOf(req.getParameter("editProject")))) {
 			Project p = new Project(Integer.parseInt(req.getParameter("editProject")),req.getParameter("editProjectName") );
 			currentProject = p;
 			out.println("<a href=\"projects\" style=\"padding:36px\">BACK</a>"
@@ -203,6 +199,8 @@ public class ProjectController extends servletBase {
 					"				\r\n" + 
 					"</table>");
 			return;
+		} else if (req.getParameter("editProject") != null && !actionIsAllowed(req, Integer.valueOf(req.getParameter("editProject")))) {
+			out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">ACTION NOT ALLOWED: " + ", reason: You are not an admin or a projectleader for this project.</p>");
 		}
 		
 		
@@ -263,6 +261,28 @@ public class ProjectController extends servletBase {
 				"    </div>\r\n" + 
 				"\r\n" + 
 				"</body>");
+	}
+	
+	private boolean actionIsAllowed(HttpServletRequest req, int projectId) {
+		try {
+			User user = getLoggedInUser(req);
+			
+			if (user == null)
+				return false;
+			
+			if (user.isAdmin())
+				return true;
+			else {
+				int val = dbService.getProjectUserIdByUserIdAndProjectId(user.getUserId(), projectId);
+				
+			}
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return false;
 	}
 	
 	private String getUserFormsForProject(Project project) {
@@ -371,12 +391,15 @@ public class ProjectController extends servletBase {
 		return sbBuilder.toString();
 	}
 	public boolean deleteProject(int projectId) {
+		try {
+			dbService.deleteProject(projectId);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 	
-	public boolean assignRole(User user, int projectId, int roleId) {
-		return false;
-	}
 	
 	public Project createProject(Project proj) {
 		try {
@@ -385,10 +408,6 @@ public class ProjectController extends servletBase {
 			e.printStackTrace();
 		}
 		return null;
-	}
-	
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-	    doGet(req, resp);
 	}
 
 }

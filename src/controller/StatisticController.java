@@ -3,6 +3,7 @@ package controller;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 import javax.servlet.ServletException;
@@ -15,11 +16,14 @@ import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
+import database.Project;
 import database.Role;
 import database.Statistic;
+import database.User;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,16 +45,11 @@ import java.util.List;
 public class StatisticController extends servletBase {
 	
 	
-	private DatabaseService dbService; // Temporary, will be replaced later.
-	
+	List<Project> activeProjects;
+	List<User> projectUsers;
 	
 	public StatisticController() {
 		super();
-		try {
-			dbService = new DatabaseService();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	
@@ -65,30 +64,42 @@ public class StatisticController extends servletBase {
 		String to = req.getParameter("to");
 		String activity = req.getParameter("activity");
 		String role = req.getParameter("role");
+		String projectId = req.getParameter("projectId");
 				
+		System.out.println(projectId);
 		
 		if (from == null || to == null) {
-			out.println(statisticsPageForm(null));
+			out.println(statisticsPageForm(null,req));
 		} else {
 			try {
-				LocalDate fromDate = new SimpleDateFormat("dd-MMM-yyy").parse(from).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-				LocalDate toDate = new SimpleDateFormat("dd-MMM-yyy").parse(to).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-				
+				LocalDate fromDate = LocalDate.parse(from);
+				LocalDate toDate = LocalDate.parse(to);
+				System.out.println(fromDate.toString());
 				int weeks = (int) ChronoUnit.WEEKS.between(fromDate, toDate);				
 				
-				out.println(statisticsPageForm(getStats(username, fromDate, toDate, activity, role, weeks)));
 				
+				if (actionIsAllowed(req, getIdForProject(projectId)) || getLoggedInUser(req) != null && username != null && username.equals(getLoggedInUser(req).getUsername()))
+					out.println(statisticsPageForm(getStats(username, fromDate, toDate, activity, role, projectId, weeks),req));
+				else {
+					out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">ACTION NOT ALLOWED: You are not admin or project leader for this project."  + "</p>");
+					out.println(statisticsPageForm(null,req));
+				}
+				
+			} catch (DateTimeParseException e) {
+				out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">Incorrect date format, please enter in this format: yyyy-mm-dd, Ex. 2020-03-29"  + "</p>");
+				out.println(statisticsPageForm(null,req));
 			} catch (Exception e) {
-				out.println(statisticsPageForm(null));
+				out.println(statisticsPageForm(null,req));
 				e.printStackTrace();
 			}
 		}
 		
     }
     
-    private List<Statistic> getStats(String username, LocalDate fromDate, LocalDate toDate, String activity, String role, int weeks) throws Exception {
+    private List<Statistic> getStats(String username, LocalDate fromDate, LocalDate toDate, String activity, String role, String projectName, int weeks) throws Exception {
     	List<Statistic> stats = new ArrayList<Statistic>();
     	List<Role> roles = dbService.getAllRoles();
+    	projectUsers = dbService.getAllUsers(getIdForProject(projectName));
     	
 		while(weeks > 0) {
 			Statistic statistic = null;
@@ -96,13 +107,13 @@ public class StatisticController extends servletBase {
 			if (weeks > 10) {
 			switch (statsToGet(username, activity, role)) {
 			case 1:
-				statistic = dbService.getActivityStatistics(1, 1, fromDate, fromDate.plusWeeks(10));
+				statistic = dbService.getActivityStatistics(getIdForProject(projectName),getIdForUser(username), fromDate, fromDate.plusWeeks(10));
 				break;
 			case 2:
-				statistic = dbService.getActivityStatistics(1, fromDate, toDate);
+				statistic = dbService.getActivityStatistics(getIdForProject(projectName), fromDate, toDate);
 				break;
 			case 3:
-				statistic = dbService.getRoleStatistics(1, 2, fromDate, toDate);
+				statistic = dbService.getRoleStatistics(getIdForProject(projectName), getRoleIdFor(role, roles), fromDate, toDate);
 				break;
 			case -1:
 				return null;
@@ -114,13 +125,13 @@ public class StatisticController extends servletBase {
 			} else {
 				switch (statsToGet(username, activity, role)) {
 				case 1:
-					statistic = dbService.getActivityStatistics(1, 1, fromDate, toDate);
+					statistic = dbService.getActivityStatistics(getIdForProject(projectName), getIdForUser(username), fromDate, toDate);
 					break;
 				case 2:
-					statistic = dbService.getActivityStatistics(1, fromDate, toDate);
+					statistic = dbService.getActivityStatistics(getIdForProject(projectName), fromDate, toDate);
 					break;
 				case 3:
-					statistic = dbService.getRoleStatistics(1, getRoleIdFor(role, roles), fromDate, toDate);
+					statistic = dbService.getRoleStatistics(getIdForProject(projectName), getRoleIdFor(role, roles), fromDate, toDate);
 					break;
 				case -1:
 					return null;
@@ -134,6 +145,29 @@ public class StatisticController extends servletBase {
 		return stats;
     }
     
+	private boolean actionIsAllowed(HttpServletRequest req, int projectId) {
+		try {
+			User user = getLoggedInUser(req);
+			
+			if (user == null)
+				return false;
+			
+			if (user.isAdmin())
+				return true;
+			else {
+				int val = dbService.getProjectUserIdByUserIdAndProjectId(user.getUserId(), projectId);
+				
+			}
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return false;
+	}
+	
+    
     
     private int getRoleIdFor(String name, List<Role> roles) {
     	for (Role role : roles) {
@@ -142,6 +176,16 @@ public class StatisticController extends servletBase {
 		}
     	
     	return 1;
+    }
+    
+    
+    
+    private int getIdForUser(String username) {
+    	for (User user : projectUsers) {
+			if (user.getUsername().equals(username))
+				return user.getUserId();
+		}
+    	return -1;
     }
     
     
@@ -157,7 +201,7 @@ public class StatisticController extends servletBase {
     }
 
 		
-	private String statisticsPageForm(List<Statistic> statistics) {
+	private String statisticsPageForm(List<Statistic> statistics,HttpServletRequest req) {
 			
 		StringBuilder sb = new StringBuilder();
 		
@@ -214,6 +258,14 @@ public class StatisticController extends servletBase {
 				"                <div id=\"activity_picker\">\r\n" + 
 				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\" onchange=\"if (this.selectedIndex) disableBoxes(this);\">");
 		sb.append(getRoleSelectOptions());
+		sb.append("</select>");
+		sb.append("                </div>\r\n" + 
+				"            </div>\r\n" +
+				"            <div>\r\n" + 
+				"                <p class=\"descriptors\">Project</p>\r\n" + 
+				"                <div id=\"activity_picker\">\r\n" + 
+				"                    <select id=\"rol_picker\" name=\"projectId\" form=\"filter_form\" >");
+		sb.append(getProjectSelectOptions(req));
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
 				"            </div>\r\n" + 
@@ -282,9 +334,31 @@ public class StatisticController extends servletBase {
 			e.printStackTrace();
 		}
 		
-		
 		return sbBuilder.toString();
 		
+	}
+	
+	private String getProjectSelectOptions(HttpServletRequest req) {
+		StringBuilder sbBuilder = new StringBuilder();
+		
+		try {
+			//if(getLoggedInUser(req) == null)
+				//return sbBuilder.toString();
+			
+			//List<Project> projects = dbService.getAllProjects(getLoggedInUser(req).getUserId()); // TODO: TEST FOR ID 1
+			activeProjects = dbService.getAllProjects(1);
+			for (Project project : activeProjects) {
+				sbBuilder.append("<option value=\"");
+				sbBuilder.append(project.getName());
+				sbBuilder.append("\">");
+				sbBuilder.append(project.getName());
+				sbBuilder.append("</option>\n");
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return sbBuilder.toString();
 	}
 	
 	/**
@@ -311,6 +385,14 @@ public class StatisticController extends servletBase {
 		return sbBuilder.toString();
 	}
 	
+	
+	private int getIdForProject(String projectName) {
+		for (Project project : activeProjects) {
+			if (project.getName().equals(projectName))
+				return project.getProjectId();
+		}
+		return -1;
+	}
 	
 	private String getStatisticsDataTable(Statistic statistic) {
 		StringBuilder sbBuilder = new StringBuilder();
@@ -381,11 +463,5 @@ public class StatisticController extends servletBase {
 		sbBuilder.append("</table>");
 		return sbBuilder.toString();
 	}
-	
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    	doGet(req, resp);
-    }
-	
 
 }
