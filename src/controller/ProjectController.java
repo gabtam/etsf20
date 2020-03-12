@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import baseblocksystem.servletBase;
 import database.DatabaseService;
 import database.Project;
+import database.Role;
 import database.User;
 
 /**
@@ -31,7 +32,7 @@ import database.User;
  * 
  */
 
-@WebServlet("/ProjectPage")
+@WebServlet("/projects")
 public class ProjectController extends servletBase {
 	
 	private DatabaseService dbService; // Temporary, will be replaced later.
@@ -53,15 +54,30 @@ public class ProjectController extends servletBase {
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
 		
-		String pname = req.getParameter("pname");
-		
-		Project project = new Project(1, pname);
+
 		
 		try {
-		
-		dbService.createProject(project);
 			
-		List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId());
+		String pname = req.getParameter("pname");
+		
+		if (pname != null && !pname.isEmpty()) {
+		
+			Project project = new Project(1, pname);
+			project = dbService.createProject(project);
+			
+			Role project_leader = dbService.getAllRoles().stream().filter(r -> r.getRole().equals("Projektledare")).findAny().orElse(null);
+			
+			System.out.println(project_leader.getRoleId());
+			
+			if (project_leader != null) {
+				dbService.addUserToProject(1, project.getProjectId(),project_leader.getRoleId());
+			}
+		
+		}
+			
+		//List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId()); Can't get user id by logged in user yet.
+		
+		List<Project> plist = dbService.getAllProjects(1); // Hardcode to get projects for user with user_id = 1
 		
 		out.println("<h2>Projects</h2>\n" +
         "<table id=\"table\">\n" +
@@ -73,7 +89,7 @@ public class ProjectController extends servletBase {
 			out.print("<tr>\n" + 
 						"<td>" + plist.get(i).getName() + "</td>\n" + 
 						"<td>edit</td>\n" + 
-						"<td>delete</td>\n" +
+						"<td><a href=\"projects?delete=" + plist.get(i).getName() + "\">delete</a></td>\n" +
 					"</tr>\n");
 		}
 		
@@ -84,32 +100,13 @@ public class ProjectController extends servletBase {
 				"        <div id=\"myModal\" class=\"modal\">   \n" + 
 				"            <div class=\"modal-content\">\n" + 
 				"                <span class=\"close\">&times;</span>\n" + 
-				"                  <label for=\"pname\">Project name:</label>\n" + 
-				"                  <input type=\"text\" id=\"pname\" name=\"pname\"><br><br>\n" + 
-				"                  <input type=\"submit\" value=\"Create\" onclick=\"create()\">\n" + 
+				"                  <label for=\"pname\">Project name:</label>\n" +
+				"				   <form>" +
+				"                  	<input type=\"text\" id=\"pname\" name=\"pname\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" minlength=\"3\" maxlength=\"20\" required><br><br>\n" + 
+				"                  	<input type=\"submit\" value=\"Create\" onclick=\"create();\">\n" + 
+				"					</form>" +
 				"            </div>\n" + 
-				"        </div>\n" + 
-				"        \n" + 
-				"        \n" + 
-				"        <!-- create btn onclick-action (create new row in table) -->\n" + 
-				"        <script>\n" + 
-				"            function create() {\n" + 
-				"                //Get the table\n" + 
-				"              var table = document.getElementById(\"table\");\n" + 
-				"                //Create row in pos 1\n" + 
-				"              var row = table.insertRow(1);\n" + 
-				"                //Create cols\n" + 
-				"              var cell1 = row.insertCell(0);\n" + 
-				"              var cell2 = row.insertCell(1);\n" + 
-				"              var cell3 = row.insertCell(2);\n" + 
-				"                //Add content to cols\n" + 
-				"              cell1.innerHTML = document.getElementById(\"pname\").value;\n" + 
-				"              cell2.innerHTML = \"edit\";\n" + 
-				"              cell3.innerHTML = \"delete\";\n" + 
-				"              }\n" + 
-				"        </script>\n" + 
-				"        \n" + 
-				"        \n" + 
+				"        </div>\n" +
 				"        <!-- create-new-project btn onclick-action (open popup) -->\n" + 
 				"        <script>\n" + 
 				"            // Get the modal\n" + 
@@ -137,7 +134,7 @@ public class ProjectController extends servletBase {
 		
 		
 		} catch (Exception e) {
-			out.println("error");
+			e.printStackTrace();
 		}
 	}
 	
