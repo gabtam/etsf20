@@ -53,7 +53,13 @@ public class ProjectController extends servletBase {
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
 		
+		String pname = req.getParameter("pname");
+		
+		Project project = new Project(1, pname);
+		
 		try {
+		
+		dbService.createProject(project);
 			
 		List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId());
 		
@@ -144,7 +150,7 @@ public class ProjectController extends servletBase {
 	}
 	
 	public Project createProject(String projectName) {
-		
+		return null;
 	}
 	
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
