@@ -59,9 +59,9 @@ public class ProjectController extends servletBase {
 		try {
 			sessionInfoUserName = getLoggedInUser(req) == null ? "null" : getLoggedInUser(req).getUsername();
 			int sessionInfoProject = getProjectId(req);
-			
-			if(sessionInfoProject != 0)
-				sessionInfoProjectName = dbService.getProject(sessionInfoProject).getName();
+			Project p = dbService.getProject(sessionInfoProject);
+			if(sessionInfoProject != 0 && p != null)
+				sessionInfoProjectName = p.getName();
 			else
 				sessionInfoProjectName = "null";
 
@@ -91,8 +91,7 @@ public class ProjectController extends servletBase {
 		
 		try {
 			
-		List<Project> plist = dbService.getAllProjects(1); // Hardcode to get projects for user with user_id = 1
-		//List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId()); Can't get user id by logged in user yet.
+		List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId());
 			
 		String pname = req.getParameter("pname");
 		String delete = req.getParameter("deleteProjectId");
@@ -101,8 +100,17 @@ public class ProjectController extends servletBase {
 		String newRole = req.getParameter("newRole");
 		String userId = req.getParameter("userId");
 		String initRole = req.getParameter("role");
+		String projectSelected = req.getParameter("projectSelected");
+		
 		
 		//String edit
+		
+		
+		if (projectSelected != null ) {
+			setProjectId(req, Integer.valueOf(projectSelected));
+			resp.sendRedirect("UserPage");
+		}
+		
 		
 		if (pname != null && !pname.isEmpty()) {
 		
@@ -213,7 +221,7 @@ public class ProjectController extends servletBase {
 		
 		for(int i = 0; i < plist.size(); i++) {
 			out.print("<tr>\n" + 
-						"<td>" + plist.get(i).getName() + "</td>\n" + 
+						"<td><a href=\"projects?projectSelected=" + plist.get(i).getProjectId() + "\">" + plist.get(i).getName() + "</a></td>\n" + 
 						"<td><a href=\"projects?editProject=" + plist.get(i).getProjectId()  + "&" + "editProjectName=" + plist.get(i).getName()  +"\"" +  "id=\"editBtn\">edit</a></td>\n" + 
 						"<td><a href=\"projects?deleteProjectId=" + plist.get(i).getName() + "\">delete</a></td>\n" +
 					"</tr>\n");

@@ -192,7 +192,7 @@ public class StatisticController extends servletBase {
     private int statsToGet(String username, String activity, String role) {
     	if (username != null && !username.isBlank())
     		return 1;
-    	else if(activity != null && !activity.isBlank())
+    	else if(activity != null && activity.equals("yes"))
     		return 2;
     	else if (role != null && !role.isBlank())
     		return 3;
@@ -233,7 +233,7 @@ public class StatisticController extends servletBase {
 				"                <div class=\"filter_row\">\r\n" + 
 				"                    <div>\r\n" + 
 				"                    <p class=\"descriptors\">Username</p>\r\n" + 
-				"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\"><br>\r\n" + 
+				"                    <input class=\"credentials_rect\" type=\"text\" id=\"username\" name=\"username\" onkeydown=\"disableAllBoxes();\" pattern=\"^[a-zA-Z0-9]*$\" title=\"Please enter letters and numbers only.\" maxlength=\"10\" placeholder=\"Search for user\"><br>\r\n" + 
 				"                    </div>\r\n" + 
 				"                    <div>\r\n" + 
 				"                        <div>\r\n" + 
@@ -246,17 +246,18 @@ public class StatisticController extends servletBase {
 				"                </div>\r\n" + 
 				"            </div>\r\n" + 
 				"            <div>\r\n" + 
-				"                <p class=\"descriptors\">Activity</p>\r\n" + 
+				"                <p class=\"descriptors\">Show data for entire project (within dates)</p>\r\n" + 
 				"                <div id=\"activity_picker\">\r\n" + 
-				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\" onchange=\"if (this.selectedIndex) disableBoxes(this);\">");
-		sb.append(getActivitySelectOptions());
+				"                    <select id=\"act_picker\" name=\"activity\" form=\"filter_form\" onclick=\"if (this.selectedIndex) disableBoxes(this);\">");
+		sb.append("<option value=\"no\">NO</option>\n");
+		sb.append("<option value=\"yes\">YES</option>\n");
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
 				"            </div>\r\n" + 
 				"            <div>\r\n" + 
 				"                <p class=\"descriptors\">Role</p>\r\n" + 
 				"                <div id=\"activity_picker\">\r\n" + 
-				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\" onchange=\"if (this.selectedIndex) disableBoxes(this);\">");
+				"                    <select id=\"rol_picker\" name=\"role\" form=\"filter_form\" onclick=\"if (this.selectedIndex) disableBoxes(this);\">");
 		sb.append(getRoleSelectOptions());
 		sb.append("</select>");
 		sb.append("                </div>\r\n" + 
@@ -298,13 +299,19 @@ public class StatisticController extends servletBase {
 				"        switch (event.name) {\r\n" + 
 				"          case \"activity\":\r\n" + 
 				"            document.getElementById(\"rol_picker\").value = \"\";\r\n" + 
+				"document.getElementById(\"username\").value = \"\";\n" +
 				"            break;\r\n" + 
 				"            case \"role\":\r\n" + 
 				"            document.getElementById(\"act_picker\").value = \"\";\r\n" + 
+				"document.getElementById(\"username\").value = \"\";\n" +
 				"            break;\r\n" + 
 				"        }\r\n" + 
 				"      }\r\n" + 
-				"\r\n" + 
+				"\r\n" +
+				"      function disableAllBoxes() {\r\n" + 
+				"        document.getElementById(\"rol_picker\").value = \"\";\r\n" + 
+				"        document.getElementById(\"act_picker\").value = \"\";\r\n" + 
+				"      }" +
 				"      document.addEventListener(\"DOMContentLoaded\", function() {\r\n" + 
 				"        document.getElementById(\"rol_picker\").value = \"\";\r\n" + 
 				"        document.getElementById(\"act_picker\").value = \"\";\r\n" + 
