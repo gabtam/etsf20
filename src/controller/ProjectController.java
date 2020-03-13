@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.sun.beans.introspect.PropertyInfo.Name;
 
-import baseblocksystem.Administration;
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
@@ -40,7 +39,6 @@ import database.User;
 @WebServlet("/projects")
 public class ProjectController extends servletBase {
 	
-	private DatabaseService dbService; // Temporary, will be replaced later.
 	
 	private List<Role> roles;
 	
@@ -49,25 +47,19 @@ public class ProjectController extends servletBase {
 	
 	public ProjectController() {
 		super();
-		try {
-			dbService = new DatabaseService();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
 	}
 
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getHeader());
 		String sessionInfoUserName = "null";
 		String sessionInfoProjectName = "null";
 		try {
 			sessionInfoUserName = getLoggedInUser(req) == null ? "null" : getLoggedInUser(req).getUsername();
 			int sessionInfoProject = getProjectId(req);
-			
-			if(sessionInfoProject != 0)
-				sessionInfoProjectName = dbService.getProject(sessionInfoProject).getName();
+			Project p = dbService.getProject(sessionInfoProject);
+			if(sessionInfoProject != 0 && p != null)
+				sessionInfoProjectName = p.getName();
 			else
 				sessionInfoProjectName = "null";
 
@@ -78,28 +70,16 @@ public class ProjectController extends servletBase {
 		}
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
-		out.println("<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/layout.css\">\n");
-		out.println("        <div id=\"headerBar\">\r\n" + 
-				"            <p id=\"sessionInfo\">" + sessionInfoUserName + " : " + sessionInfoProjectName + "</p>\r\n" + 
-				"            <a id=\"logoutbtn\" href=\"SessionPage\">Logout</a>\r\n" + 
-				"        </div>\r\n" + 
+		out.println(getHeader(req));
+		out.println(
 				"        <div id=\"wrapper\">\r\n" + 
-				"            <div id=\"navigation\">\r\n" + 
-				"                <ul id=\"menu\">\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">My Reports</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"projects\">Projects</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">New report</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"statistics\">Statistics</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"#\" disabled>More</a></li>\r\n" + 
-				"                </ul>\r\n" + 
-				"            </div>\r\n" + 
+						getNav(req) +
 				"            <div id=\"bodyContent\">");
 		
 		try {
 			
-		List<Project> plist = dbService.getAllProjects(1); // Hardcode to get projects for user with user_id = 1
-		//List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId()); Can't get user id by logged in user yet.
-			
+		List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId());
+		
 		String pname = req.getParameter("pname");
 		String delete = req.getParameter("deleteProjectId");
 		String deleteUser = req.getParameter("deleteUserId");
@@ -107,8 +87,17 @@ public class ProjectController extends servletBase {
 		String newRole = req.getParameter("newRole");
 		String userId = req.getParameter("userId");
 		String initRole = req.getParameter("role");
+		String projectSelected = req.getParameter("projectSelected");
+		
 		
 		//String edit
+		
+		
+		if (projectSelected != null ) {
+			setProjectId(req, Integer.valueOf(projectSelected));
+			resp.sendRedirect("UserPage");
+		}
+		
 		
 		if (pname != null && !pname.isEmpty()) {
 		
@@ -125,12 +114,14 @@ public class ProjectController extends servletBase {
 		
 		}
 		
-		if (delete != null && !delete.isEmpty() && (deleteUser == null || deleteUser.isEmpty())) {
+		if ( delete != null && !delete.isEmpty() && (deleteUser == null || deleteUser.isEmpty())) {
 			Project projToDelete = plist.stream().filter(p -> p.getName().equals(delete)).findAny().orElse(null);
-			if(projToDelete != null) {
-				dbService.deleteProject(projToDelete.getProjectId());
+			if(projToDelete != null && actionIsAllowed(req, Integer.valueOf(projToDelete.getProjectId()))) {
+				deleteProject(projToDelete.getProjectId());
 				out.println("<p style=\"background-color:#16a085;color:white;padding:16px;\">SUCCESFULLY DELETED PROJECT:" + projToDelete.getName() + "</p>");
 				plist.remove(projToDelete);
+			} else {
+				out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">FAILED TO DELETE PROJECT:" + projToDelete.getName() +" REASON: You are not allowed to perform this action." +  "</p>");
 			}
 		}
 		
@@ -167,8 +158,8 @@ public class ProjectController extends servletBase {
 		}
 		
 		
-		
-		if (req.getParameter("editProject") != null) { // TODO: MAKE PROJECT LEADER OR ADMIN CHECK HERE
+
+		if (req.getParameter("editProject") != null && actionIsAllowed(req, Integer.valueOf(req.getParameter("editProject")))) {
 			Project p = new Project(Integer.parseInt(req.getParameter("editProject")),req.getParameter("editProjectName") );
 			currentProject = p;
 			out.println("<a href=\"projects\" style=\"padding:36px\">BACK</a>"
@@ -203,6 +194,8 @@ public class ProjectController extends servletBase {
 					"				\r\n" + 
 					"</table>");
 			return;
+		} else if (req.getParameter("editProject") != null && !actionIsAllowed(req, Integer.valueOf(req.getParameter("editProject")))) {
+			out.println("<p style=\"background-color:#c0392b;color:white;padding:16px;\">ACTION NOT ALLOWED: " + ", reason: You are not an admin or a projectleader for this project.</p>");
 		}
 		
 		
@@ -215,7 +208,7 @@ public class ProjectController extends servletBase {
 		
 		for(int i = 0; i < plist.size(); i++) {
 			out.print("<tr>\n" + 
-						"<td>" + plist.get(i).getName() + "</td>\n" + 
+						"<td><a href=\"projects?projectSelected=" + plist.get(i).getProjectId() + "\">" + plist.get(i).getName() + "</a></td>\n" + 
 						"<td><a href=\"projects?editProject=" + plist.get(i).getProjectId()  + "&" + "editProjectName=" + plist.get(i).getName()  +"\"" +  "id=\"editBtn\">edit</a></td>\n" + 
 						"<td><a href=\"projects?deleteProjectId=" + plist.get(i).getName() + "\">delete</a></td>\n" +
 					"</tr>\n");
@@ -263,6 +256,28 @@ public class ProjectController extends servletBase {
 				"    </div>\r\n" + 
 				"\r\n" + 
 				"</body>");
+	}
+	
+	private boolean actionIsAllowed(HttpServletRequest req, int projectId) {
+		try {
+			User user = getLoggedInUser(req);
+			
+			if (user == null)
+				return false;
+			
+			if (user.isAdmin())
+				return true;
+			else {
+				int val = dbService.getProjectUserIdByUserIdAndProjectId(user.getUserId(), projectId);
+				
+			}
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return false;
 	}
 	
 	private String getUserFormsForProject(Project project) {
@@ -370,30 +385,17 @@ public class ProjectController extends servletBase {
 		
 		return sbBuilder.toString();
 	}	
-	public boolean deleteProject(int projectId) throws Exception {
-		if(dbService.getAllProjects().contains(dbService.getProject(projectId))) 
-		{
+
+	public boolean deleteProject(int projectId) {
+		try {
 			dbService.deleteProject(projectId);
 			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return false;
 	}
 	
-	public boolean assignRole(User user, int projectId, int roleId) throws Exception {
-		if(dbService.getAllProjects().contains(dbService.getProject(projectId)) 
-				&& dbService.getAllUsers().contains(user)) 
-		{
-			for(int i=0; i< dbService.getAllRoles().size() ; i++) 
-			{
-				if(dbService.getAllRoles().get(i).getRoleId()==roleId) 
-				{
-					dbService.updateUserProjectRole(user.getUserId(), projectId, roleId);
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 	
 	public Project createProject(String projectName) throws SQLException {
 		int newId;
@@ -406,10 +408,6 @@ public class ProjectController extends servletBase {
 			return newProject;
 		}
 		return null;
-	}
-	
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-	    doGet(req, resp);
 	}
 
 }

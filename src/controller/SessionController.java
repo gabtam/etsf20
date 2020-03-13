@@ -35,7 +35,7 @@ public class SessionController extends servletBase {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getHeader());
+	//	out.println(getHeader());
 		
 
 		String name = req.getParameter("username"); // get the string that the user entered in the form
