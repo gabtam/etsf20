@@ -56,7 +56,6 @@ public class StatisticController extends servletBase {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getHeader());
 		
 
 		String username = req.getParameter("username");
@@ -206,22 +205,11 @@ public class StatisticController extends servletBase {
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append("<body>");
-		sb.append("  <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n" +
-				"<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/layout.css\">\n"+
-				"        <div id=\"headerBar\">\r\n" + 
-						"            <p id=\"sessionInfo\">Admin : testProject 3</p>\r\n" + 
-						"            <a id=\"logoutbtn\" href=\"SessionPage\">Logout</a>\r\n" + 
-						"        </div>\r\n" + 
+		sb.append("  <link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/StatisticsController.css\">\r\n");
+		sb.append(getHeader(req));
+		sb.append(
 						"        <div id=\"wrapper\">\r\n" + 
-						"            <div id=\"navigation\">\r\n" + 
-						"                <ul id=\"menu\">\r\n" + 
-						"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">My Reports</a></li>\r\n" + 
-						"                    <li><a class=\"linkBtn\" href=\"projects\">Projects</a></li>\r\n" + 
-						"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">New report</a></li>\r\n" + 
-						"                    <li><a class=\"linkBtn\" href=\"statistics\">Statistics</a></li>\r\n" + 
-						"                    <li><a class=\"linkBtn\" href=\"#\" disabled>More</a></li>\r\n" + 
-						"                </ul>\r\n" + 
-						"            </div>\r\n" + 
+						getNav(req) +
 						"            <div id=\"bodyContent\">" +
 				"    <div class=\"wrapper\">\r\n" + 
 				"        <div class=\"\">\r\n" + 

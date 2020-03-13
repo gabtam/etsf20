@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.sun.beans.introspect.PropertyInfo.Name;
 
-import baseblocksystem.Administration;
 import baseblocksystem.servletBase;
 import database.ActivityType;
 import database.DatabaseService;
@@ -53,7 +52,6 @@ public class ProjectController extends servletBase {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		PrintWriter out = resp.getWriter();
-		out.println(getHeader());
 		String sessionInfoUserName = "null";
 		String sessionInfoProjectName = "null";
 		try {
@@ -72,27 +70,16 @@ public class ProjectController extends servletBase {
 		}
 		
 		out.println("<body>" + "<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/ProjectController.css\">\n");
-		out.println("<link rel=\"stylesheet\" type=\"text/css\" href=\"StyleSheets/layout.css\">\n");
-		out.println("        <div id=\"headerBar\">\r\n" + 
-				"            <p id=\"sessionInfo\">" + sessionInfoUserName + " : " + sessionInfoProjectName + "</p>\r\n" + 
-				"            <a id=\"logoutbtn\" href=\"SessionPage\">Logout</a>\r\n" + 
-				"        </div>\r\n" + 
+		out.println(getHeader(req));
+		out.println(
 				"        <div id=\"wrapper\">\r\n" + 
-				"            <div id=\"navigation\">\r\n" + 
-				"                <ul id=\"menu\">\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">My Reports</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"projects\">Projects</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"TimeReportPage\">New report</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"statistics\">Statistics</a></li>\r\n" + 
-				"                    <li><a class=\"linkBtn\" href=\"#\" disabled>More</a></li>\r\n" + 
-				"                </ul>\r\n" + 
-				"            </div>\r\n" + 
+						getNav(req) +
 				"            <div id=\"bodyContent\">");
 		
 		try {
 			
 		List<Project> plist = dbService.getAllProjects(getLoggedInUser(req).getUserId());
-			
+		
 		String pname = req.getParameter("pname");
 		String delete = req.getParameter("deleteProjectId");
 		String deleteUser = req.getParameter("deleteUserId");
